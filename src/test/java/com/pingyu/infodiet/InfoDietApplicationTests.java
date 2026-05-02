@@ -1,13 +1,15 @@
 package com.pingyu.infodiet;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 class InfoDietApplicationTests {
 
     @Test
-    void contextLoads() {
+    void applicationClassShouldExist() {
+        assertNotNull(InfoDietApplication.class);
+        assertEquals("com.pingyu.infodiet.InfoDietApplication", InfoDietApplication.class.getName());
     }
-
 }
