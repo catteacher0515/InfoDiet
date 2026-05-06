@@ -57,6 +57,13 @@
             <artifactId>HikariCP</artifactId>
         </dependency>
 
+        <!--Jsoup https://jsoup.org/-->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.22.2</version>
+        </dependency>
+
         <!--Hutool 工具库-->
         <!--https://doc.hutool.cn/pages/index/#%F0%9F%8D%8Amaven-->
         <dependency>
