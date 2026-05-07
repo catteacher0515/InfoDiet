@@ -19,4 +19,9 @@ public class InfoDietProperties {
      * 关键词列表
      */
     private List<String> keywords = new ArrayList<>();
+
+    /**
+     * GitHub 日流程 cron 表达式
+     */
+    private String githubDailyCron = "0 0 9 * * ?";
 }
