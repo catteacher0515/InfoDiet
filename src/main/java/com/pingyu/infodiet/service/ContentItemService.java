@@ -32,6 +32,23 @@ public interface ContentItemService extends IService<ContentItem> {
      */
     SaveResult saveGithubTrendingItems(List<GithubTrendingItemDTO> dtoList);
 
+    /**
+     * 判断内容是否命中关键词
+     *
+     * @param contentItem 内容项
+     * @param keywords    关键词列表
+     * @return 是否命中
+     */
+    boolean matchKeywords(ContentItem contentItem, List<String> keywords);
+
+    /**
+     * 根据关键词批量过滤内容
+     *
+     * @param keywords 关键词列表
+     * @return 过滤结果
+     */
+    KeywordFilterResult filterByKeywords(List<String> keywords);
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -51,5 +68,26 @@ public interface ContentItemService extends IService<ContentItem> {
          * 跳过数
          */
         private int skippedCount;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class KeywordFilterResult {
+
+        /**
+         * 本次处理总数
+         */
+        private int totalCount;
+
+        /**
+         * 命中数
+         */
+        private int matchedCount;
+
+        /**
+         * 未命中数
+         */
+        private int unmatchedCount;
     }
 }

@@ -1,6 +1,12 @@
 package com.pingyu.infodiet.controller;
 
 import com.mybatisflex.core.paginate.Page;
+import com.pingyu.infodiet.common.BaseResponse;
+import com.pingyu.infodiet.common.ResultUtils;
+import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
+import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.service.ContentItemService;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -8,10 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.pingyu.infodiet.model.entity.ContentItem;
-import com.pingyu.infodiet.service.ContentItemService;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 
 /**
@@ -23,7 +27,7 @@ import java.util.List;
 @RequestMapping("/contentItem")
 public class ContentItemController {
 
-    @Autowired
+    @Resource
     private ContentItemService contentItemService;
 
     /**
@@ -89,6 +93,16 @@ public class ContentItemController {
     @GetMapping("page")
     public Page<ContentItem> page(Page<ContentItem> page) {
         return contentItemService.page(page);
+    }
+
+    /**
+     * 根据关键词批量过滤内容
+     */
+    @PostMapping("filter/keywords")
+    public BaseResponse<ContentItemService.KeywordFilterResult> filterByKeywords(
+            @RequestBody ContentItemKeywordFilterRequest request
+    ) {
+        return ResultUtils.success(contentItemService.filterByKeywords(request.getKeywords()));
     }
 
 }
