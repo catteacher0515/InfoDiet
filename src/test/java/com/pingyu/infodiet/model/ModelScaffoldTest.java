@@ -6,6 +6,8 @@ import com.mybatisflex.annotation.Table;
 import com.pingyu.infodiet.generator.MyBatisCodeGenerator;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.UserKeywordSubscription;
+import com.pingyu.infodiet.model.entity.UserProfile;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -34,7 +36,10 @@ class ModelScaffoldTest {
 
         assertEquals(Date.class, ContentItem.class.getDeclaredField("crawlDate").getType());
         assertEquals(LocalDateTime.class, ContentItem.class.getDeclaredField("crawlTime").getType());
+        assertEquals(LocalDateTime.class, ContentItem.class.getDeclaredField("publishTime").getType());
         assertEquals(String.class, ContentItem.class.getDeclaredField("extraData").getType());
+        assertEquals(String.class, ContentItem.class.getDeclaredField("contentType").getType());
+        assertEquals(Integer.class, ContentItem.class.getDeclaredField("viewCount").getType());
     }
 
     @Test
@@ -54,5 +59,41 @@ class ModelScaffoldTest {
         tableNamesField.setAccessible(true);
         String[] tableNames = (String[]) tableNamesField.get(null);
         assertArrayEquals(new String[]{"content_item"}, tableNames);
+    }
+
+    @Test
+    void userProfileShouldBeMyBatisFlexEntityForUserProfileTable() throws NoSuchFieldException {
+        Table table = UserProfile.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("user_profile", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(UserProfile.class));
+
+        Field idField = UserProfile.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(String.class, UserProfile.class.getDeclaredField("nickname").getType());
+        assertEquals(String.class, UserProfile.class.getDeclaredField("feishuUserId").getType());
+        assertEquals(Integer.class, UserProfile.class.getDeclaredField("dailyPushLimit").getType());
+        assertEquals(LocalDateTime.class, UserProfile.class.getDeclaredField("createTime").getType());
+    }
+
+    @Test
+    void userKeywordSubscriptionShouldBeMyBatisFlexEntityForSubscriptionTable() throws NoSuchFieldException {
+        Table table = UserKeywordSubscription.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("user_keyword_subscription", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(UserKeywordSubscription.class));
+
+        Field idField = UserKeywordSubscription.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(Long.class, UserKeywordSubscription.class.getDeclaredField("userId").getType());
+        assertEquals(String.class, UserKeywordSubscription.class.getDeclaredField("keyword").getType());
+        assertEquals(Integer.class, UserKeywordSubscription.class.getDeclaredField("status").getType());
+        assertEquals(LocalDateTime.class, UserKeywordSubscription.class.getDeclaredField("updateTime").getType());
     }
 }

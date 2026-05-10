@@ -54,6 +54,12 @@ public class ContentItem implements Serializable {
     private String title;
 
     /**
+     * 内容类型
+     */
+    @Column("contentType")
+    private String contentType;
+
+    /**
      * 描述
      */
     private String description;
@@ -94,6 +100,12 @@ public class ContentItem implements Serializable {
     private Integer todayStarCount;
 
     /**
+     * 播放量
+     */
+    @Column("viewCount")
+    private Integer viewCount;
+
+    /**
      * 是否命中关键词
      */
     @Column("keywordMatched")
@@ -128,6 +140,12 @@ public class ContentItem implements Serializable {
      */
     @Column("crawlTime")
     private LocalDateTime crawlTime;
+
+    /**
+     * 原始发布时间
+     */
+    @Column("publishTime")
+    private LocalDateTime publishTime;
 
     /**
      * 创建时间

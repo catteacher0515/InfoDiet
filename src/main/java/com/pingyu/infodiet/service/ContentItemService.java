@@ -2,6 +2,7 @@ package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
+import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,12 +26,28 @@ public interface ContentItemService extends IService<ContentItem> {
     ContentItem convertGithubTrendingItem(GithubTrendingItemDTO dto);
 
     /**
+     * 将 YouTube 抓取结果转换为内容项
+     *
+     * @param dto YouTube 抓取结果
+     * @return 内容项
+     */
+    ContentItem convertYoutubeVideoItem(YoutubeVideoItemDTO dto);
+
+    /**
      * 批量保存 GitHub Trending 抓取结果
      *
      * @param dtoList GitHub Trending 抓取结果列表
      * @return 保存结果
      */
     SaveResult saveGithubTrendingItems(List<GithubTrendingItemDTO> dtoList);
+
+    /**
+     * 批量保存 YouTube 抓取结果
+     *
+     * @param dtoList YouTube 抓取结果列表
+     * @return 保存结果
+     */
+    SaveResult saveYoutubeVideoItems(List<YoutubeVideoItemDTO> dtoList);
 
     /**
      * 判断内容是否命中关键词

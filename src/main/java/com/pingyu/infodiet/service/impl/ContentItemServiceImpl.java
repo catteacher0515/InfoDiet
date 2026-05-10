@@ -6,6 +6,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.ContentItemMapper;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
+import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.enums.ContentPlatformEnum;
 import com.pingyu.infodiet.service.ContentItemService;
@@ -49,6 +50,30 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
     }
 
     /**
+     * 将 YouTube DTO 转换为 ContentItem
+     */
+    @Override
+    public ContentItem convertYoutubeVideoItem(YoutubeVideoItemDTO dto) {
+        LocalDateTime now = now();
+        return ContentItem.builder()
+                .platform(ContentPlatformEnum.YOUTUBE.getValue())
+                .sourceId(dto.getVideoId())
+                .title(dto.getTitle())
+                .contentType("video")
+                .description(dto.getDescription())
+                .contentUrl(dto.getVideoUrl())
+                .authorName(dto.getAuthorName())
+                .authorUrl(dto.getAuthorUrl())
+                .viewCount(0)
+                .publishTime(dto.getPublishTime())
+                .keywordMatched(0)
+                .pushStatus(0)
+                .crawlDate(Date.valueOf(now.toLocalDate()))
+                .crawlTime(now)
+                .build();
+    }
+
+    /**
      * 批量保存 GitHub Trending 抓取结果
      */
     @Override
@@ -60,6 +85,35 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
         int skippedCount = 0;
         for (GithubTrendingItemDTO dto : dtoList) {
             ContentItem contentItem = convertGithubTrendingItem(dto);
+            boolean exists = existsByPlatformAndSourceIdAndCrawlDate(
+                    contentItem.getPlatform(),
+                    contentItem.getSourceId(),
+                    contentItem.getCrawlDate()
+            );
+            if (exists) {
+                skippedCount++;
+                continue;
+            }
+            boolean saved = this.save(contentItem);
+            if (saved) {
+                savedCount++;
+            }
+        }
+        return new SaveResult(dtoList.size(), savedCount, skippedCount);
+    }
+
+    /**
+     * 批量保存 YouTube 抓取结果
+     */
+    @Override
+    public SaveResult saveYoutubeVideoItems(List<YoutubeVideoItemDTO> dtoList) {
+        if (CollUtil.isEmpty(dtoList)) {
+            return new SaveResult(0, 0, 0);
+        }
+        int savedCount = 0;
+        int skippedCount = 0;
+        for (YoutubeVideoItemDTO dto : dtoList) {
+            ContentItem contentItem = convertYoutubeVideoItem(dto);
             boolean exists = existsByPlatformAndSourceIdAndCrawlDate(
                     contentItem.getPlatform(),
                     contentItem.getSourceId(),

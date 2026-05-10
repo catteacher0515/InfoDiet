@@ -1,0 +1,52 @@
+package com.pingyu.infodiet.service.impl;
+
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.pingyu.infodiet.mapper.UserProfileMapper;
+import com.pingyu.infodiet.model.entity.UserProfile;
+import com.pingyu.infodiet.service.UserProfileService;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * 用户信息表 服务层实现。
+ */
+@Service
+public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserProfile> implements UserProfileService {
+
+    /**
+     * 创建用户
+     */
+    @Override
+    public Long createUser(UserProfile userProfile) {
+        this.save(userProfile);
+        return userProfile.getId();
+    }
+
+    /**
+     * 更新用户
+     */
+    @Override
+    public boolean updateUser(UserProfile userProfile) {
+        return this.updateById(userProfile);
+    }
+
+    /**
+     * 根据主键获取用户
+     */
+    @Override
+    public UserProfile getUserById(Long userId) {
+        return this.getById(userId);
+    }
+
+    /**
+     * 查询启用用户
+     */
+    @Override
+    public List<UserProfile> listEnabledUsers() {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("status", 1);
+        return this.list(queryWrapper);
+    }
+}
