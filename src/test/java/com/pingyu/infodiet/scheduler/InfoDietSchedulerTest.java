@@ -25,4 +25,19 @@ class InfoDietSchedulerTest {
 
         verify(infoDietScheduleService, times(1)).runDailyGithubFlow();
     }
+
+    @Test
+    void runDailyYoutubeSourcePushFlowShouldInvokeScheduleService() {
+        InfoDietScheduleService infoDietScheduleService = Mockito.mock(InfoDietScheduleService.class);
+        when(infoDietScheduleService.runDailyYoutubeSourcePushFlow()).thenReturn(
+                new InfoDietScheduleService.YoutubeSourceScheduleResult(2, 6, 4, 2, 3, 2, 3, 0)
+        );
+
+        InfoDietScheduler scheduler = new InfoDietScheduler();
+        ReflectionTestUtils.setField(scheduler, "infoDietScheduleService", infoDietScheduleService);
+
+        scheduler.runDailyYoutubeSourcePushFlow();
+
+        verify(infoDietScheduleService, times(1)).runDailyYoutubeSourcePushFlow();
+    }
 }

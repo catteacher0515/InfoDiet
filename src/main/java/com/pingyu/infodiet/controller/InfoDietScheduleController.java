@@ -25,4 +25,12 @@ public class InfoDietScheduleController {
     public BaseResponse<InfoDietScheduleService.ScheduleResult> runDailyGithubFlow() {
         return ResultUtils.success(infoDietScheduleService.runDailyGithubFlow());
     }
+
+    /**
+     * 手动触发每日 YouTube 订阅源推送流程
+     */
+    @PostMapping("/youtube/source/daily/run")
+    public BaseResponse<InfoDietScheduleService.YoutubeSourceScheduleResult> runDailyYoutubeSourcePushFlow() {
+        return ResultUtils.success(infoDietScheduleService.runDailyYoutubeSourcePushFlow());
+    }
 }

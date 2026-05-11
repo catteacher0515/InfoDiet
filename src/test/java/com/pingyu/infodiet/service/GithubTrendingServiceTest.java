@@ -57,4 +57,58 @@ class GithubTrendingServiceTest {
 
         assertTrue(exception.getMessage().contains("HTML"));
     }
+
+    @Test
+    void parseRepositoryHtmlShouldExtractSingleRepository() {
+        String html = """
+                <p class="f4 my-3">
+                  The official Java library for the OpenAI API
+                </p>
+                <span itemprop="programmingLanguage">Java</span>
+                <a href="/openai/openai-java/stargazers">1.5k</a>
+                """;
+
+        GithubTrendingItemDTO item = githubTrendingService.parseRepositoryHtml(html, "openai/openai-java");
+
+        assertEquals("openai/openai-java", item.getRepoFullName());
+        assertEquals("openai-java", item.getRepoName());
+        assertEquals("https://github.com/openai/openai-java", item.getRepoUrl());
+        assertEquals("openai", item.getAuthorName());
+        assertEquals("https://github.com/openai", item.getAuthorUrl());
+        assertEquals("The official Java library for the OpenAI API", item.getDescription());
+        assertEquals("Java", item.getLanguage());
+        assertEquals(1500, item.getStarCount());
+        assertEquals(0, item.getTodayStarCount());
+    }
+
+    @Test
+    void parseAuthorRepositoriesHtmlShouldExtractRepositoryList() {
+        String html = """
+                <div id="user-repositories-list">
+                  <ul>
+                    <li>
+                      <a itemprop="name codeRepository" href="/openai/openai-java">openai-java</a>
+                      <p itemprop="description">The official Java library for the OpenAI API</p>
+                      <span itemprop="programmingLanguage">Java</span>
+                      <a href="/openai/openai-java/stargazers">2,345</a>
+                    </li>
+                    <li>
+                      <a itemprop="name codeRepository" href="/openai/codex">codex</a>
+                      <p itemprop="description">Lightweight coding agent that runs in your terminal</p>
+                      <span itemprop="programmingLanguage">Rust</span>
+                      <a href="/openai/codex/stargazers">81.7k</a>
+                    </li>
+                  </ul>
+                </div>
+                """;
+
+        List<GithubTrendingItemDTO> items = githubTrendingService.parseAuthorRepositoriesHtml(html, "openai");
+
+        assertEquals(2, items.size());
+        assertEquals("openai/openai-java", items.get(0).getRepoFullName());
+        assertEquals(2345, items.get(0).getStarCount());
+        assertEquals("openai/codex", items.get(1).getRepoFullName());
+        assertEquals(81700, items.get(1).getStarCount());
+        assertEquals("Rust", items.get(1).getLanguage());
+    }
 }

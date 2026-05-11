@@ -92,3 +92,19 @@ create table if not exists user_content_push
     index idx_pushStatus_channel (pushStatus, pushChannel),
     index idx_userId_pushStatus (userId, pushStatus)
 ) comment '用户内容推送表' collate = utf8mb4_unicode_ci;
+
+create table if not exists user_source_subscription
+(
+    id          bigint auto_increment comment '主键' primary key,
+    userId      bigint                                 not null comment '用户 ID',
+    platform    varchar(32)                            not null comment '平台',
+    sourceType  varchar(64)                            not null comment '订阅源类型',
+    sourceValue varchar(256)                           not null comment '订阅源值',
+    status      tinyint                                not null default 1 comment '状态 0-禁用 1-启用',
+    createTime  datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
+    updateTime  datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete    tinyint  default 0                     not null comment '是否删除',
+    unique key uk_user_source (userId, platform, sourceType, sourceValue),
+    index idx_userId_status (userId, status),
+    index idx_platform_sourceType (platform, sourceType)
+) comment '用户订阅源表' collate = utf8mb4_unicode_ci;

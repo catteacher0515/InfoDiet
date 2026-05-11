@@ -24,4 +24,9 @@ public class InfoDietProperties {
      * GitHub 日流程 cron 表达式
      */
     private String githubDailyCron = "0 0 9 * * ?";
+
+    /**
+     * YouTube 订阅源日流程 cron 表达式
+     */
+    private String youtubeSourceDailyCron = "0 30 9 * * ?";
 }

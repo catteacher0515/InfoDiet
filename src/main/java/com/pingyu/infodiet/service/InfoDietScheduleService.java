@@ -1,5 +1,6 @@
 package com.pingyu.infodiet.service;
 
+import com.pingyu.infodiet.service.SourceSubscriptionCrawlService.CrawlResult;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,16 @@ public interface InfoDietScheduleService {
      * 执行每日 GitHub 流程
      */
     ScheduleResult runDailyGithubFlow();
+
+    /**
+     * 执行每日 YouTube 订阅源采集流程
+     */
+    CrawlResult runDailyYoutubeSourceFlow();
+
+    /**
+     * 执行每日 YouTube 订阅源推送流程
+     */
+    YoutubeSourceScheduleResult runDailyYoutubeSourcePushFlow();
 
     @Data
     @NoArgsConstructor
@@ -51,6 +62,52 @@ public interface InfoDietScheduleService {
 
         /**
          * 推送失败数量
+         */
+        private int pushFailedCount;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class YoutubeSourceScheduleResult {
+
+        /**
+         * 本次处理订阅源数量
+         */
+        private int subscriptionCount;
+
+        /**
+         * 本次抓取内容数量
+         */
+        private int crawlCount;
+
+        /**
+         * 本次新增入库数量
+         */
+        private int savedCount;
+
+        /**
+         * 本次跳过数量
+         */
+        private int skippedCount;
+
+        /**
+         * 本次新增待推送数量
+         */
+        private int pendingPushCreatedCount;
+
+        /**
+         * 本次跳过待推送数量
+         */
+        private int pendingPushSkippedCount;
+
+        /**
+         * 本次推送成功数量
+         */
+        private int pushSuccessCount;
+
+        /**
+         * 本次推送失败数量
          */
         private int pushFailedCount;
     }

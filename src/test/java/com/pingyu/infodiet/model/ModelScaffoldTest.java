@@ -9,6 +9,7 @@ import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserKeywordSubscription;
 import com.pingyu.infodiet.model.entity.UserProfile;
+import com.pingyu.infodiet.model.entity.UserSourceSubscription;
 import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
 import org.junit.jupiter.api.Test;
 
@@ -137,5 +138,24 @@ class ModelScaffoldTest {
         assertEquals(Integer.class, UserSubscriptionRule.class.getDeclaredField("ruleWeight").getType());
         assertEquals(Integer.class, UserSubscriptionRule.class.getDeclaredField("status").getType());
         assertEquals(LocalDateTime.class, UserSubscriptionRule.class.getDeclaredField("createTime").getType());
+    }
+
+    @Test
+    void userSourceSubscriptionShouldBeMyBatisFlexEntityForSourceTable() throws NoSuchFieldException {
+        Table table = UserSourceSubscription.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("user_source_subscription", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(UserSourceSubscription.class));
+
+        Field idField = UserSourceSubscription.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(Long.class, UserSourceSubscription.class.getDeclaredField("userId").getType());
+        assertEquals(String.class, UserSourceSubscription.class.getDeclaredField("platform").getType());
+        assertEquals(String.class, UserSourceSubscription.class.getDeclaredField("sourceType").getType());
+        assertEquals(String.class, UserSourceSubscription.class.getDeclaredField("sourceValue").getType());
+        assertEquals(Integer.class, UserSourceSubscription.class.getDeclaredField("status").getType());
     }
 }

@@ -2,6 +2,7 @@ package com.pingyu.infodiet.service;
 
 import com.pingyu.infodiet.config.InfoDietProperties;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
+import com.pingyu.infodiet.service.SourceSubscriptionCrawlService;
 import com.pingyu.infodiet.service.impl.InfoDietScheduleServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -59,6 +60,58 @@ class InfoDietScheduleServiceTest {
         verify(githubTrendingService).crawlGitHubTrending();
         verify(contentItemService).saveGithubTrendingItems(dtoList);
         verify(contentItemService).filterByKeywords(List.of("agent", "workflow"));
+        verify(userContentPushService).createPendingPushes();
+        verify(feishuPushService).pushUserContentItemsToFeishu();
+    }
+
+    @Test
+    void runDailyYoutubeSourceFlowShouldInvokeSourceSubscriptionCrawl() {
+        SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
+        when(sourceSubscriptionCrawlService.crawlAllSourceSubscriptions())
+                .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
+
+        InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
+        ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
+
+        SourceSubscriptionCrawlService.CrawlResult result = service.runDailyYoutubeSourceFlow();
+
+        assertEquals(2, result.getSubscriptionCount());
+        assertEquals(6, result.getCrawlCount());
+        assertEquals(4, result.getSavedCount());
+        assertEquals(2, result.getSkippedCount());
+        verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
+    }
+
+    @Test
+    void runDailyYoutubeSourcePushFlowShouldOrchestrateWholePipeline() {
+        SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+
+        when(sourceSubscriptionCrawlService.crawlAllSourceSubscriptions())
+                .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
+        when(userContentPushService.createPendingPushes())
+                .thenReturn(new UserContentPushService.CreatePushResult(5, 3, 2));
+        when(feishuPushService.pushUserContentItemsToFeishu())
+                .thenReturn(new FeishuPushService.PushResult(3, 3, 0));
+
+        InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
+        ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
+        ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+        ReflectionTestUtils.setField(service, "feishuPushService", feishuPushService);
+
+        InfoDietScheduleService.YoutubeSourceScheduleResult result = service.runDailyYoutubeSourcePushFlow();
+
+        assertEquals(2, result.getSubscriptionCount());
+        assertEquals(6, result.getCrawlCount());
+        assertEquals(4, result.getSavedCount());
+        assertEquals(2, result.getSkippedCount());
+        assertEquals(3, result.getPendingPushCreatedCount());
+        assertEquals(2, result.getPendingPushSkippedCount());
+        assertEquals(3, result.getPushSuccessCount());
+        assertEquals(0, result.getPushFailedCount());
+
+        verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
         verify(userContentPushService).createPendingPushes();
         verify(feishuPushService).pushUserContentItemsToFeishu();
     }

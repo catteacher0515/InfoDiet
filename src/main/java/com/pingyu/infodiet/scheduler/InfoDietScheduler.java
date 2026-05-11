@@ -24,4 +24,13 @@ public class InfoDietScheduler {
         InfoDietScheduleService.ScheduleResult result = infoDietScheduleService.runDailyGithubFlow();
         log.info("信息节食定时任务执行完成：{}", result);
     }
+
+    /**
+     * 定时执行每日 YouTube 订阅源采集
+     */
+    @Scheduled(cron = "${info-diet.youtube-source-daily-cron:0 30 9 * * ?}")
+    public void runDailyYoutubeSourcePushFlow() {
+        var result = infoDietScheduleService.runDailyYoutubeSourcePushFlow();
+        log.info("信息节食 YouTube 订阅源定时推送完成：{}", result);
+    }
 }

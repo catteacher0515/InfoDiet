@@ -33,4 +33,28 @@ class InfoDietScheduleControllerTest {
         assertEquals(6, response.getData().getPushSuccessCount());
         assertEquals(0, response.getData().getPushFailedCount());
     }
+
+    @Test
+    void runDailyYoutubeSourcePushFlowShouldReturnScheduleSummary() {
+        InfoDietScheduleService infoDietScheduleService = Mockito.mock(InfoDietScheduleService.class);
+        InfoDietScheduleService.YoutubeSourceScheduleResult scheduleResult =
+                new InfoDietScheduleService.YoutubeSourceScheduleResult(2, 6, 4, 2, 3, 2, 3, 0);
+        when(infoDietScheduleService.runDailyYoutubeSourcePushFlow()).thenReturn(scheduleResult);
+
+        InfoDietScheduleController controller = new InfoDietScheduleController();
+        ReflectionTestUtils.setField(controller, "infoDietScheduleService", infoDietScheduleService);
+
+        BaseResponse<InfoDietScheduleService.YoutubeSourceScheduleResult> response =
+                controller.runDailyYoutubeSourcePushFlow();
+
+        assertEquals(0, response.getCode());
+        assertEquals(2, response.getData().getSubscriptionCount());
+        assertEquals(6, response.getData().getCrawlCount());
+        assertEquals(4, response.getData().getSavedCount());
+        assertEquals(2, response.getData().getSkippedCount());
+        assertEquals(3, response.getData().getPendingPushCreatedCount());
+        assertEquals(2, response.getData().getPendingPushSkippedCount());
+        assertEquals(3, response.getData().getPushSuccessCount());
+        assertEquals(0, response.getData().getPushFailedCount());
+    }
 }
