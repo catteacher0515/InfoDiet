@@ -29,6 +29,25 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void createUserShouldAcceptPushStrategyFields() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        when(userProfileService.createUser(Mockito.any(UserProfile.class))).thenReturn(2L);
+
+        UserProfileController controller = new UserProfileController();
+        ReflectionTestUtils.setField(controller, "userProfileService", userProfileService);
+
+        UserProfile request = UserProfile.builder()
+                .nickname("pingyu")
+                .dailyPushLimit(3)
+                .pushCooldownHours(12)
+                .build();
+        BaseResponse<Long> response = controller.createUser(request);
+
+        assertEquals(0, response.getCode());
+        assertEquals(2L, response.getData());
+    }
+
+    @Test
     void listEnabledUsersShouldReturnUsers() {
         UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
         when(userProfileService.listEnabledUsers()).thenReturn(List.of(

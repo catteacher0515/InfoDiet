@@ -57,6 +57,12 @@ public class UserProfile implements Serializable {
     private Integer dailyPushLimit;
 
     /**
+     * 推送冷却小时数
+     */
+    @Column("pushCooldownHours")
+    private Integer pushCooldownHours;
+
+    /**
      * 状态 0-禁用 1-启用
      */
     private Integer status;

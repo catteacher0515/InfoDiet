@@ -54,6 +54,11 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
             int dailyPushLimit = userProfile == null || userProfile.getDailyPushLimit() == null
                     ? Integer.MAX_VALUE
                     : userProfile.getDailyPushLimit();
+            if (isUserInPushCooldown(userProfile, userId)) {
+                totalCount += contentItems.size();
+                skippedCount += contentItems.size();
+                continue;
+            }
             int currentPushCount = countTodayPushesByUserId(userId);
             for (ContentItem contentItem : contentItems) {
                 totalCount++;
@@ -138,6 +143,37 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                 .ge("createTime", startOfDay)
                 .lt("createTime", startOfNextDay);
         return (int) this.mapper.selectCountByQuery(queryWrapper);
+    }
+
+    /**
+     * 获取用户最近一次成功推送时间
+     */
+    protected LocalDateTime getLastSuccessPushTime(Long userId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("userId", userId)
+                .eq("pushStatus", 1)
+                .orderBy("pushTime", false)
+                .limit(1);
+        List<UserContentPush> pushList = this.list(queryWrapper);
+        if (CollUtil.isEmpty(pushList)) {
+            return null;
+        }
+        return pushList.getFirst().getPushTime();
+    }
+
+    /**
+     * 判断用户是否处于推送冷却期
+     */
+    protected boolean isUserInPushCooldown(UserProfile userProfile, Long userId) {
+        if (userProfile == null || userProfile.getPushCooldownHours() == null || userProfile.getPushCooldownHours() <= 0) {
+            return false;
+        }
+        LocalDateTime lastSuccessPushTime = getLastSuccessPushTime(userId);
+        if (lastSuccessPushTime == null) {
+            return false;
+        }
+        LocalDateTime nextAllowedPushTime = lastSuccessPushTime.plusHours(userProfile.getPushCooldownHours());
+        return now().isBefore(nextAllowedPushTime);
     }
 
     /**

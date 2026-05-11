@@ -159,9 +159,89 @@ class UserContentPushServiceTest {
         assertEquals(301L, service.savedItems.get(0).getContentItemId());
     }
 
+    @Test
+    void createPendingPushesShouldSkipWhenUserIsInCooldown() {
+        SubscriptionMatchService subscriptionMatchService = Mockito.mock(SubscriptionMatchService.class);
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+
+        ContentItem firstItem = ContentItem.builder().id(401L).title("agent workflow").build();
+
+        when(subscriptionMatchService.matchEnabledUsers()).thenReturn(Map.of(
+                1L, List.of(firstItem)
+        ));
+        when(userProfileService.getUserById(1L)).thenReturn(
+                com.pingyu.infodiet.model.entity.UserProfile.builder()
+                        .id(1L)
+                        .pushChannel("feishu")
+                        .dailyPushLimit(5)
+                        .pushCooldownHours(6)
+                        .build()
+        );
+
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        ReflectionTestUtils.setField(service, "subscriptionMatchService", subscriptionMatchService);
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        service.fixedNow = LocalDateTime.of(2026, 5, 11, 22, 0);
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .userId(1L)
+                .contentItemId(300L)
+                .pushStatus(1)
+                .pushTime(LocalDateTime.of(2026, 5, 11, 18, 30))
+                .build());
+
+        UserContentPushService.CreatePushResult result = service.createPendingPushes();
+
+        assertEquals(1, result.getTotalCount());
+        assertEquals(0, result.getCreatedCount());
+        assertEquals(1, result.getSkippedCount());
+        assertEquals(1, service.savedItems.size());
+    }
+
+    @Test
+    void createPendingPushesShouldCreateAfterCooldownExpires() {
+        SubscriptionMatchService subscriptionMatchService = Mockito.mock(SubscriptionMatchService.class);
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+
+        ContentItem firstItem = ContentItem.builder().id(402L).title("agent workflow").build();
+
+        when(subscriptionMatchService.matchEnabledUsers()).thenReturn(Map.of(
+                1L, List.of(firstItem)
+        ));
+        when(userProfileService.getUserById(1L)).thenReturn(
+                com.pingyu.infodiet.model.entity.UserProfile.builder()
+                        .id(1L)
+                        .pushChannel("feishu")
+                        .dailyPushLimit(5)
+                        .pushCooldownHours(6)
+                        .build()
+        );
+
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        ReflectionTestUtils.setField(service, "subscriptionMatchService", subscriptionMatchService);
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        service.fixedNow = LocalDateTime.of(2026, 5, 11, 22, 0);
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .userId(1L)
+                .contentItemId(300L)
+                .pushStatus(1)
+                .pushTime(LocalDateTime.of(2026, 5, 11, 15, 0))
+                .build());
+
+        UserContentPushService.CreatePushResult result = service.createPendingPushes();
+
+        assertEquals(1, result.getTotalCount());
+        assertEquals(1, result.getCreatedCount());
+        assertEquals(0, result.getSkippedCount());
+        assertEquals(2, service.savedItems.size());
+        assertEquals(402L, service.savedItems.getLast().getContentItemId());
+    }
+
     private static class InMemoryUserContentPushService extends UserContentPushServiceImpl {
 
         private final List<UserContentPush> savedItems = new ArrayList<>();
+        private LocalDateTime fixedNow = LocalDateTime.now();
 
         @Override
         protected boolean existsByUserIdAndContentItemId(Long userId, Long contentItemId) {
@@ -180,6 +260,22 @@ class UserContentPushServiceTest {
         public boolean save(UserContentPush entity) {
             savedItems.add(entity);
             return true;
+        }
+
+        @Override
+        protected LocalDateTime now() {
+            return fixedNow;
+        }
+
+        @Override
+        protected LocalDateTime getLastSuccessPushTime(Long userId) {
+            return savedItems.stream()
+                    .filter(item -> userId.equals(item.getUserId()))
+                    .filter(item -> item.getPushStatus() != null && item.getPushStatus() == 1)
+                    .map(UserContentPush::getPushTime)
+                    .filter(item -> item != null)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(null);
         }
     }
 }

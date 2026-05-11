@@ -38,6 +38,25 @@ class UserProfileServiceTest {
         assertEquals("enabled", enabledUsers.getFirst().getNickname());
     }
 
+    @Test
+    void createUserShouldKeepPushStrategyFields() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        UserProfile userProfile = UserProfile.builder()
+                .id(2L)
+                .nickname("strategy-user")
+                .dailyPushLimit(5)
+                .pushCooldownHours(6)
+                .status(1)
+                .build();
+
+        Long userId = service.createUser(userProfile);
+
+        assertEquals(2L, userId);
+        assertEquals(1, service.items.size());
+        assertEquals(5, service.items.getFirst().getDailyPushLimit());
+        assertEquals(6, service.items.getFirst().getPushCooldownHours());
+    }
+
     private static class InMemoryUserProfileService extends UserProfileServiceImpl {
 
         private final List<UserProfile> items = new ArrayList<>();

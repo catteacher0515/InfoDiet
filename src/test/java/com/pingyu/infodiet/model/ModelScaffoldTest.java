@@ -79,6 +79,7 @@ class ModelScaffoldTest {
         assertEquals(String.class, UserProfile.class.getDeclaredField("nickname").getType());
         assertEquals(String.class, UserProfile.class.getDeclaredField("feishuUserId").getType());
         assertEquals(Integer.class, UserProfile.class.getDeclaredField("dailyPushLimit").getType());
+        assertEquals(Integer.class, UserProfile.class.getDeclaredField("pushCooldownHours").getType());
         assertEquals(LocalDateTime.class, UserProfile.class.getDeclaredField("createTime").getType());
     }
 

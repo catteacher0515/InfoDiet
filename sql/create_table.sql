@@ -39,6 +39,7 @@ create table if not exists user_profile
     feishuUserId   varchar(128)                           null comment '飞书用户 ID',
     pushChannel    varchar(32)                            not null default 'feishu' comment '推送渠道',
     dailyPushLimit int                                    not null default 10 comment '每日推送上限',
+    pushCooldownHours int                                 not null default 0 comment '推送冷却小时数',
     status         tinyint                                not null default 1 comment '状态 0-禁用 1-启用',
     createTime     datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
     updateTime     datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
