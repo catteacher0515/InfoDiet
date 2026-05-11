@@ -23,6 +23,11 @@ public interface FeishuPushService {
     PushResult pushContentItemsToFeishu();
 
     /**
+     * 推送用户内容到飞书
+     */
+    PushResult pushUserContentItemsToFeishu();
+
+    /**
      * 批量更新推送状态
      */
     boolean markItemsAsPushed(List<Long> itemIds);

@@ -59,3 +59,20 @@ create table if not exists user_keyword_subscription
     unique key uk_user_keyword (userId, keyword),
     index idx_userId_status (userId, status)
 ) comment '用户关键词订阅表' collate = utf8mb4_unicode_ci;
+
+create table if not exists user_content_push
+(
+    id            bigint auto_increment comment '主键' primary key,
+    userId        bigint                                 not null comment '用户 ID',
+    contentItemId bigint                                 not null comment '内容 ID',
+    pushChannel   varchar(32)                            not null comment '推送渠道',
+    pushStatus    tinyint                                not null default 0 comment '推送状态 0-待推送 1-推送成功 2-推送失败',
+    pushTime      datetime                               null comment '推送时间',
+    failReason    varchar(512)                           null comment '失败原因',
+    createTime    datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
+    updateTime    datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete      tinyint  default 0                     not null comment '是否删除',
+    unique key uk_user_content (userId, contentItemId),
+    index idx_pushStatus_channel (pushStatus, pushChannel),
+    index idx_userId_pushStatus (userId, pushStatus)
+) comment '用户内容推送表' collate = utf8mb4_unicode_ci;

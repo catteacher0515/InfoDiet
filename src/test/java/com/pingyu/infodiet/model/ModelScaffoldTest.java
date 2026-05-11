@@ -6,6 +6,7 @@ import com.mybatisflex.annotation.Table;
 import com.pingyu.infodiet.generator.MyBatisCodeGenerator;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserKeywordSubscription;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import org.junit.jupiter.api.Test;
@@ -95,5 +96,25 @@ class ModelScaffoldTest {
         assertEquals(String.class, UserKeywordSubscription.class.getDeclaredField("keyword").getType());
         assertEquals(Integer.class, UserKeywordSubscription.class.getDeclaredField("status").getType());
         assertEquals(LocalDateTime.class, UserKeywordSubscription.class.getDeclaredField("updateTime").getType());
+    }
+
+    @Test
+    void userContentPushShouldBeMyBatisFlexEntityForPushTable() throws NoSuchFieldException {
+        Table table = UserContentPush.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("user_content_push", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(UserContentPush.class));
+
+        Field idField = UserContentPush.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(Long.class, UserContentPush.class.getDeclaredField("userId").getType());
+        assertEquals(Long.class, UserContentPush.class.getDeclaredField("contentItemId").getType());
+        assertEquals(String.class, UserContentPush.class.getDeclaredField("pushChannel").getType());
+        assertEquals(Integer.class, UserContentPush.class.getDeclaredField("pushStatus").getType());
+        assertEquals(String.class, UserContentPush.class.getDeclaredField("failReason").getType());
+        assertEquals(LocalDateTime.class, UserContentPush.class.getDeclaredField("pushTime").getType());
     }
 }

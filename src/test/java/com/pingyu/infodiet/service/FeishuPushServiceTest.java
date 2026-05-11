@@ -3,6 +3,7 @@ package com.pingyu.infodiet.service;
 import com.pingyu.infodiet.config.FeishuBaseProperties;
 import com.pingyu.infodiet.exception.BusinessException;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.service.impl.FeishuPushServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class FeishuPushServiceTest {
 
@@ -64,8 +66,8 @@ class FeishuPushServiceTest {
         ContentItem secondItem = ContentItem.builder().id(2L).title("second").build();
         service.pendingItems.add(firstItem);
         service.pendingItems.add(secondItem);
-        service.pushResults.add(true);
-        service.pushResults.add(false);
+        service.pushResults.add(new FeishuPushServiceImpl.PushAttemptResult(true, null));
+        service.pushResults.add(new FeishuPushServiceImpl.PushAttemptResult(false, "飞书接口失败"));
 
         FeishuPushService.PushResult result = service.pushContentItemsToFeishu();
 
@@ -88,10 +90,42 @@ class FeishuPushServiceTest {
         assertThrows(BusinessException.class, service::pushContentItemsToFeishu);
     }
 
+    @Test
+    void pushUserContentItemsToFeishuShouldUpdateUserPushStatus() {
+        LocalDateTime fixedNow = LocalDateTime.of(2026, 5, 7, 9, 30);
+        ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+
+        TestableFeishuPushService service = new TestableFeishuPushService();
+        service.fixedNow = fixedNow;
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+        ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+
+        UserContentPush firstPush = UserContentPush.builder().id(11L).contentItemId(1L).build();
+        UserContentPush secondPush = UserContentPush.builder().id(12L).contentItemId(2L).build();
+        service.pendingUserPushItems.add(firstPush);
+        service.pendingUserPushItems.add(secondPush);
+
+        when(contentItemService.getById(1L)).thenReturn(ContentItem.builder().id(1L).title("first").build());
+        when(contentItemService.getById(2L)).thenReturn(ContentItem.builder().id(2L).title("second").build());
+
+        service.pushResults.add(new FeishuPushServiceImpl.PushAttemptResult(true, null));
+        service.pushResults.add(new FeishuPushServiceImpl.PushAttemptResult(false, "code=91403,msg=Forbidden"));
+
+        FeishuPushService.PushResult result = service.pushUserContentItemsToFeishu();
+
+        assertEquals(2, result.getTotalCount());
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(1, result.getFailedCount());
+        verify(userContentPushService, times(1)).markPushSuccess(11L);
+        verify(userContentPushService, times(1)).markPushFailed(12L, "code=91403,msg=Forbidden");
+    }
+
     private static class TestableFeishuPushService extends FeishuPushServiceImpl {
 
         private final List<ContentItem> pendingItems = new ArrayList<>();
-        private final List<Boolean> pushResults = new ArrayList<>();
+        private final List<UserContentPush> pendingUserPushItems = new ArrayList<>();
+        private final List<FeishuPushServiceImpl.PushAttemptResult> pushResults = new ArrayList<>();
         private LocalDateTime fixedNow = LocalDateTime.now();
 
         private TestableFeishuPushService() {
@@ -109,7 +143,12 @@ class FeishuPushServiceTest {
         }
 
         @Override
-        protected boolean pushSingleContentItem(ContentItem contentItem) {
+        protected List<UserContentPush> listPendingUserPushItems() {
+            return pendingUserPushItems;
+        }
+
+        @Override
+        protected FeishuPushServiceImpl.PushAttemptResult pushSingleContentItemWithResult(ContentItem contentItem) {
             return pushResults.removeFirst();
         }
 

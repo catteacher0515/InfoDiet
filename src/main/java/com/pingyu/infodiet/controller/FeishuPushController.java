@@ -25,4 +25,12 @@ public class FeishuPushController {
     public BaseResponse<FeishuPushService.PushResult> pushContentItemsToFeishu() {
         return ResultUtils.success(feishuPushService.pushContentItemsToFeishu());
     }
+
+    /**
+     * 手动推送用户内容到飞书
+     */
+    @PostMapping("/user-content")
+    public BaseResponse<FeishuPushService.PushResult> pushUserContentItemsToFeishu() {
+        return ResultUtils.success(feishuPushService.pushUserContentItemsToFeishu());
+    }
 }

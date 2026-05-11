@@ -27,4 +27,21 @@ class FeishuPushControllerTest {
         assertEquals(4, response.getData().getSuccessCount());
         assertEquals(2, response.getData().getFailedCount());
     }
+
+    @Test
+    void pushUserContentItemsToFeishuShouldReturnPushSummary() {
+        FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+        FeishuPushService.PushResult pushResult = new FeishuPushService.PushResult(3, 2, 1);
+        when(feishuPushService.pushUserContentItemsToFeishu()).thenReturn(pushResult);
+
+        FeishuPushController controller = new FeishuPushController();
+        ReflectionTestUtils.setField(controller, "feishuPushService", feishuPushService);
+
+        BaseResponse<FeishuPushService.PushResult> response = controller.pushUserContentItemsToFeishu();
+
+        assertEquals(0, response.getCode());
+        assertEquals(3, response.getData().getTotalCount());
+        assertEquals(2, response.getData().getSuccessCount());
+        assertEquals(1, response.getData().getFailedCount());
+    }
 }

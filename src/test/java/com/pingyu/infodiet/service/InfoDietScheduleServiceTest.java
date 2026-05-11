@@ -20,6 +20,7 @@ class InfoDietScheduleServiceTest {
         GithubTrendingService githubTrendingService = Mockito.mock(GithubTrendingService.class);
         ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
         FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
 
         GithubTrendingItemDTO first = new GithubTrendingItemDTO();
         GithubTrendingItemDTO second = new GithubTrendingItemDTO();
@@ -30,7 +31,9 @@ class InfoDietScheduleServiceTest {
                 .thenReturn(new ContentItemService.SaveResult(2, 1, 1));
         when(contentItemService.filterByKeywords(List.of("agent", "workflow")))
                 .thenReturn(new ContentItemService.KeywordFilterResult(2, 1, 1));
-        when(feishuPushService.pushContentItemsToFeishu())
+        when(userContentPushService.createPendingPushes())
+                .thenReturn(new UserContentPushService.CreatePushResult(1, 1, 0));
+        when(feishuPushService.pushUserContentItemsToFeishu())
                 .thenReturn(new FeishuPushService.PushResult(1, 1, 0));
 
         InfoDietProperties infoDietProperties = new InfoDietProperties();
@@ -40,6 +43,7 @@ class InfoDietScheduleServiceTest {
         ReflectionTestUtils.setField(service, "githubTrendingService", githubTrendingService);
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
         ReflectionTestUtils.setField(service, "feishuPushService", feishuPushService);
+        ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
         ReflectionTestUtils.setField(service, "infoDietProperties", infoDietProperties);
 
         InfoDietScheduleService.ScheduleResult result = service.runDailyGithubFlow();
@@ -55,6 +59,7 @@ class InfoDietScheduleServiceTest {
         verify(githubTrendingService).crawlGitHubTrending();
         verify(contentItemService).saveGithubTrendingItems(dtoList);
         verify(contentItemService).filterByKeywords(List.of("agent", "workflow"));
-        verify(feishuPushService).pushContentItemsToFeishu();
+        verify(userContentPushService).createPendingPushes();
+        verify(feishuPushService).pushUserContentItemsToFeishu();
     }
 }

@@ -6,6 +6,7 @@ import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.FeishuPushService;
 import com.pingyu.infodiet.service.GithubTrendingService;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
+import com.pingyu.infodiet.service.UserContentPushService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,9 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
     private FeishuPushService feishuPushService;
 
     @Resource
+    private UserContentPushService userContentPushService;
+
+    @Resource
     private InfoDietProperties infoDietProperties;
 
     /**
@@ -38,7 +42,8 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         ContentItemService.SaveResult saveResult = contentItemService.saveGithubTrendingItems(dtoList);
         ContentItemService.KeywordFilterResult filterResult = contentItemService
                 .filterByKeywords(infoDietProperties.getKeywords());
-        FeishuPushService.PushResult pushResult = feishuPushService.pushContentItemsToFeishu();
+        userContentPushService.createPendingPushes();
+        FeishuPushService.PushResult pushResult = feishuPushService.pushUserContentItemsToFeishu();
         return new ScheduleResult(
                 dtoList.size(),
                 saveResult.getSavedCount(),

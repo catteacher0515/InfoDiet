@@ -11,8 +11,10 @@ import com.pingyu.infodiet.config.FeishuBaseProperties;
 import com.pingyu.infodiet.exception.ErrorCode;
 import com.pingyu.infodiet.exception.ThrowUtils;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.FeishuPushService;
+import com.pingyu.infodiet.service.UserContentPushService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,9 @@ public class FeishuPushServiceImpl implements FeishuPushService {
 
     @Resource
     private FeishuBaseProperties feishuBaseProperties;
+
+    @Resource
+    private UserContentPushService userContentPushService;
 
     /**
      * 查询待推送内容
@@ -61,8 +66,8 @@ public class FeishuPushServiceImpl implements FeishuPushService {
         int successCount = 0;
         int failedCount = 0;
         for (ContentItem contentItem : contentItems) {
-            boolean pushed = pushSingleContentItem(contentItem);
-            if (pushed) {
+            PushAttemptResult pushAttemptResult = pushSingleContentItemWithResult(contentItem);
+            if (pushAttemptResult.success()) {
                 pushedItemIds.add(contentItem.getId());
                 successCount++;
             } else {
@@ -71,6 +76,40 @@ public class FeishuPushServiceImpl implements FeishuPushService {
         }
         markItemsAsPushed(pushedItemIds);
         return new PushResult(contentItems.size(), successCount, failedCount);
+    }
+
+    /**
+     * 推送用户内容到飞书
+     */
+    @Override
+    public PushResult pushUserContentItemsToFeishu() {
+        List<UserContentPush> userContentPushes = listPendingUserPushItems();
+        if (CollUtil.isEmpty(userContentPushes)) {
+            return new PushResult(0, 0, 0);
+        }
+        validateFeishuConfig();
+        int successCount = 0;
+        int failedCount = 0;
+        for (UserContentPush userContentPush : userContentPushes) {
+            ContentItem contentItem = contentItemService.getById(userContentPush.getContentItemId());
+            if (contentItem == null) {
+                userContentPushService.markPushFailed(userContentPush.getId(), "内容不存在");
+                failedCount++;
+                continue;
+            }
+            PushAttemptResult pushAttemptResult = pushSingleContentItemWithResult(contentItem);
+            if (pushAttemptResult.success()) {
+                userContentPushService.markPushSuccess(userContentPush.getId());
+                successCount++;
+            } else {
+                userContentPushService.markPushFailed(
+                        userContentPush.getId(),
+                        StrUtil.blankToDefault(pushAttemptResult.failReason(), "飞书推送失败")
+                );
+                failedCount++;
+            }
+        }
+        return new PushResult(userContentPushes.size(), successCount, failedCount);
     }
 
     /**
@@ -96,6 +135,13 @@ public class FeishuPushServiceImpl implements FeishuPushService {
      * 推送单条内容
      */
     protected boolean pushSingleContentItem(ContentItem contentItem) {
+        return pushSingleContentItemWithResult(contentItem).success();
+    }
+
+    /**
+     * 推送单条内容并返回结果
+     */
+    protected PushAttemptResult pushSingleContentItemWithResult(ContentItem contentItem) {
         try {
             Client client = buildClient();
             Map<String, Object> fields = buildFeishuRecordFields(contentItem);
@@ -110,9 +156,14 @@ public class FeishuPushServiceImpl implements FeishuPushService {
             CreateAppTableRecordResp resp = client.bitable().appTableRecord().create(req);
             if (resp == null) {
                 log.error("飞书推送失败，响应为空，contentItemId={}", contentItem.getId());
-                return false;
+                return new PushAttemptResult(false, "飞书响应为空");
             }
             if (!resp.success()) {
+                String failReason = String.format(
+                        "code=%s,msg=%s",
+                        resp.getCode(),
+                        StrUtil.blankToDefault(resp.getMsg(), "")
+                );
                 log.error(
                         "飞书推送失败，contentItemId={}, title={}, code={}, msg={}, requestId={}",
                         contentItem.getId(),
@@ -121,9 +172,9 @@ public class FeishuPushServiceImpl implements FeishuPushService {
                         resp.getMsg(),
                         resp.getRequestId()
                 );
-                return false;
+                return new PushAttemptResult(false, failReason);
             }
-            return true;
+            return new PushAttemptResult(true, null);
         } catch (Exception e) {
             log.error(
                     "飞书推送异常，contentItemId={}, title={}",
@@ -131,8 +182,15 @@ public class FeishuPushServiceImpl implements FeishuPushService {
                     contentItem.getTitle(),
                     e
             );
-            return false;
+            return new PushAttemptResult(false, e.getMessage());
         }
+    }
+
+    /**
+     * 查询待推送用户内容
+     */
+    protected List<UserContentPush> listPendingUserPushItems() {
+        return userContentPushService.listPendingPushesByChannel("feishu");
     }
 
     /**
@@ -179,5 +237,11 @@ public class FeishuPushServiceImpl implements FeishuPushService {
      */
     protected LocalDateTime now() {
         return LocalDateTime.now();
+    }
+
+    /**
+     * 推送结果
+     */
+    public record PushAttemptResult(boolean success, String failReason) {
     }
 }
