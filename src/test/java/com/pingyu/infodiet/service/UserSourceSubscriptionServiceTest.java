@@ -3,7 +3,10 @@ package com.pingyu.infodiet.service;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
 import com.pingyu.infodiet.service.impl.UserSourceSubscriptionServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,6 +43,21 @@ class UserSourceSubscriptionServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("youtube", result.getFirst().getPlatform());
+    }
+
+    @Test
+    void sourceSubscriptionMethodsShouldDeclareCacheAnnotations() throws NoSuchMethodException {
+        Method listMethod = UserSourceSubscriptionServiceImpl.class.getDeclaredMethod("listEnabledSourceSubscriptions");
+        Method addMethod = UserSourceSubscriptionServiceImpl.class.getDeclaredMethod(
+                "addSourceSubscription",
+                UserSourceSubscription.class
+        );
+
+        Cacheable cacheable = listMethod.getAnnotation(Cacheable.class);
+        CacheEvict cacheEvict = addMethod.getAnnotation(CacheEvict.class);
+
+        assertEquals("enabledSourceSubscriptions", cacheable.cacheNames()[0]);
+        assertEquals(true, cacheEvict.allEntries());
     }
 
     private static class InMemoryUserSourceSubscriptionService extends UserSourceSubscriptionServiceImpl {

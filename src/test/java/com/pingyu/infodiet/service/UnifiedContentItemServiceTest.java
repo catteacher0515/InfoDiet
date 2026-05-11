@@ -5,7 +5,10 @@ import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.service.impl.ContentItemServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -150,6 +153,21 @@ class UnifiedContentItemServiceTest {
         assertEquals(22L, result.getFirst().getId());
         assertEquals("github", result.getFirst().getPlatform());
         assertEquals("repository", result.getFirst().getContentType());
+    }
+
+    @Test
+    void unifiedContentMethodsShouldDeclareCacheAnnotations() throws NoSuchMethodException {
+        Method listMethod = ContentItemServiceImpl.class.getDeclaredMethod(
+                "listUnifiedContentItems",
+                UnifiedContentQueryRequest.class
+        );
+        Method saveMethod = ContentItemServiceImpl.class.getDeclaredMethod("saveGithubTrendingItems", List.class);
+
+        Cacheable cacheable = listMethod.getAnnotation(Cacheable.class);
+        CacheEvict cacheEvict = saveMethod.getAnnotation(CacheEvict.class);
+
+        assertEquals("unifiedContentItems", cacheable.cacheNames()[0]);
+        assertEquals(true, cacheEvict.allEntries());
     }
 
     private static class InMemoryUnifiedContentItemService extends ContentItemServiceImpl {

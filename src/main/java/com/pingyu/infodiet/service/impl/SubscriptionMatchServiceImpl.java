@@ -15,6 +15,7 @@ import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
 import com.pingyu.infodiet.service.UserProfileService;
 import com.pingyu.infodiet.service.UserSubscriptionRuleService;
 import jakarta.annotation.Resource;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -68,6 +69,7 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
      * 匹配启用用户的订阅内容明细
      */
     @Override
+    @Cacheable(cacheNames = "matchEnabledUsersWithDetails", key = "'all'")
     public Map<Long, List<MatchDetail>> matchEnabledUsersWithDetails() {
         List<UserProfile> enabledUsers = userProfileService.listEnabledUsers();
         List<ContentItem> contentItems = listCandidateContentItems();

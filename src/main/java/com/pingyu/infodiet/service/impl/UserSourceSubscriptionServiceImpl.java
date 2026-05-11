@@ -6,6 +6,8 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.UserSourceSubscriptionMapper;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
 import com.pingyu.infodiet.service.UserSourceSubscriptionService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +24,10 @@ public class UserSourceSubscriptionServiceImpl
      * 添加订阅源
      */
     @Override
+    @CacheEvict(
+            cacheNames = {"enabledSourceSubscriptions", "matchEnabledUsersWithDetails", "unifiedContentItems"},
+            allEntries = true
+    )
     public boolean addSourceSubscription(UserSourceSubscription userSourceSubscription) {
         userSourceSubscription.setPlatform(normalize(userSourceSubscription.getPlatform()));
         userSourceSubscription.setSourceType(normalize(userSourceSubscription.getSourceType()));
@@ -36,6 +42,7 @@ public class UserSourceSubscriptionServiceImpl
      * 查询启用订阅源列表
      */
     @Override
+    @Cacheable(cacheNames = "enabledSourceSubscriptions", key = "'all'")
     public List<UserSourceSubscription> listEnabledSourceSubscriptions() {
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("status", 1);

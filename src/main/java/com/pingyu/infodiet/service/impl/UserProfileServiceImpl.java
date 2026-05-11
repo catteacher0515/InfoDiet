@@ -5,6 +5,8 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.UserProfileMapper;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserProfileService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +21,7 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
      * 创建用户
      */
     @Override
+    @CacheEvict(cacheNames = "enabledUsers", allEntries = true)
     public Long createUser(UserProfile userProfile) {
         this.save(userProfile);
         return userProfile.getId();
@@ -28,6 +31,7 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
      * 更新用户
      */
     @Override
+    @CacheEvict(cacheNames = {"enabledUsers", "matchEnabledUsersWithDetails"}, allEntries = true)
     public boolean updateUser(UserProfile userProfile) {
         if (userProfile == null || userProfile.getId() == null) {
             return false;
@@ -69,6 +73,7 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
      * 查询启用用户
      */
     @Override
+    @Cacheable(cacheNames = "enabledUsers", key = "'all'")
     public List<UserProfile> listEnabledUsers() {
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("status", 1);

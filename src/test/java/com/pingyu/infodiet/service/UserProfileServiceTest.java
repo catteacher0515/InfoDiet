@@ -3,7 +3,10 @@ package com.pingyu.infodiet.service;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.impl.UserProfileServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,6 +79,23 @@ class UserProfileServiceTest {
         assertEquals(true, updated);
         assertEquals(0, service.items.getFirst().getPushCooldownHours());
         assertEquals(3, service.items.getFirst().getDailyPushLimit());
+    }
+
+    @Test
+    void listEnabledUsersShouldDeclareRedisCache() throws NoSuchMethodException {
+        Method method = UserProfileServiceImpl.class.getDeclaredMethod("listEnabledUsers");
+        Cacheable cacheable = method.getAnnotation(Cacheable.class);
+
+        assertEquals("enabledUsers", cacheable.cacheNames()[0]);
+    }
+
+    @Test
+    void updateUserShouldEvictRelatedCaches() throws NoSuchMethodException {
+        Method method = UserProfileServiceImpl.class.getDeclaredMethod("updateUser", UserProfile.class);
+        CacheEvict cacheEvict = method.getAnnotation(CacheEvict.class);
+
+        assertEquals(true, cacheEvict.allEntries());
+        assertEquals("enabledUsers", cacheEvict.cacheNames()[0]);
     }
 
     private static class InMemoryUserProfileService extends UserProfileServiceImpl {

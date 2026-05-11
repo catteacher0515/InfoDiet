@@ -12,6 +12,8 @@ import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.enums.ContentPlatformEnum;
 import com.pingyu.infodiet.service.ContentItemService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
@@ -84,6 +86,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      * 批量保存 GitHub Trending 抓取结果
      */
     @Override
+    @CacheEvict(cacheNames = {"unifiedContentItems", "matchEnabledUsersWithDetails"}, allEntries = true)
     public SaveResult saveGithubTrendingItems(List<GithubTrendingItemDTO> dtoList) {
         if (CollUtil.isEmpty(dtoList)) {
             return new SaveResult(0, 0, 0);
@@ -113,6 +116,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      * 批量保存 YouTube 抓取结果
      */
     @Override
+    @CacheEvict(cacheNames = {"unifiedContentItems", "matchEnabledUsersWithDetails"}, allEntries = true)
     public SaveResult saveYoutubeVideoItems(List<YoutubeVideoItemDTO> dtoList) {
         if (CollUtil.isEmpty(dtoList)) {
             return new SaveResult(0, 0, 0);
@@ -164,6 +168,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      * 根据关键词批量过滤内容
      */
     @Override
+    @CacheEvict(cacheNames = {"unifiedContentItems", "matchEnabledUsersWithDetails"}, allEntries = true)
     public KeywordFilterResult filterByKeywords(List<String> keywords) {
         List<ContentItem> contentItems = listUnmatchedItems();
         if (CollUtil.isEmpty(contentItems)) {
@@ -225,6 +230,10 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      * 按条件查询统一内容列表
      */
     @Override
+    @Cacheable(
+            cacheNames = "unifiedContentItems",
+            key = "T(java.util.Objects).toString(#request == null ? 'default' : #request.platform + '|' + #request.contentType + '|' + #request.sortBy + '|' + #request.limit)"
+    )
     public List<UnifiedContentItemDTO> listUnifiedContentItems(UnifiedContentQueryRequest request) {
         List<ContentItem> contentItems = this.list(QueryWrapper.create().eq("isDelete", 0));
         if (CollUtil.isEmpty(contentItems)) {

@@ -8,8 +8,10 @@ import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.service.impl.SubscriptionMatchServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -310,6 +312,14 @@ class SubscriptionMatchServiceTest {
         Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
 
         assertEquals(0, result.size());
+    }
+
+    @Test
+    void matchEnabledUsersWithDetailsShouldDeclareRedisCache() throws NoSuchMethodException {
+        Method method = SubscriptionMatchServiceImpl.class.getDeclaredMethod("matchEnabledUsersWithDetails");
+        Cacheable cacheable = method.getAnnotation(Cacheable.class);
+
+        assertEquals("matchEnabledUsersWithDetails", cacheable.cacheNames()[0]);
     }
 
     private static class TestableSubscriptionMatchService extends SubscriptionMatchServiceImpl {
