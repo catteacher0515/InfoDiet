@@ -29,7 +29,32 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
      */
     @Override
     public boolean updateUser(UserProfile userProfile) {
-        return this.updateById(userProfile);
+        if (userProfile == null || userProfile.getId() == null) {
+            return false;
+        }
+        UserProfile existingUser = this.getById(userProfile.getId());
+        if (existingUser == null) {
+            return false;
+        }
+        if (userProfile.getNickname() != null) {
+            existingUser.setNickname(userProfile.getNickname());
+        }
+        if (userProfile.getFeishuUserId() != null) {
+            existingUser.setFeishuUserId(userProfile.getFeishuUserId());
+        }
+        if (userProfile.getPushChannel() != null) {
+            existingUser.setPushChannel(userProfile.getPushChannel());
+        }
+        if (userProfile.getDailyPushLimit() != null) {
+            existingUser.setDailyPushLimit(userProfile.getDailyPushLimit());
+        }
+        if (userProfile.getPushCooldownHours() != null) {
+            existingUser.setPushCooldownHours(userProfile.getPushCooldownHours());
+        }
+        if (userProfile.getStatus() != null) {
+            existingUser.setStatus(userProfile.getStatus());
+        }
+        return this.updateById(existingUser);
     }
 
     /**

@@ -15,7 +15,7 @@ class UserContentPushControllerTest {
     void createPendingPushesShouldReturnCreateSummary() {
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
         UserContentPushService.CreatePushResult createPushResult =
-                new UserContentPushService.CreatePushResult(6, 4, 2);
+                new UserContentPushService.CreatePushResult(6, 4, 2, 1, 1, 0);
         when(userContentPushService.createPendingPushes()).thenReturn(createPushResult);
 
         UserContentPushController controller = new UserContentPushController();
@@ -27,5 +27,8 @@ class UserContentPushControllerTest {
         assertEquals(6, response.getData().getTotalCount());
         assertEquals(4, response.getData().getCreatedCount());
         assertEquals(2, response.getData().getSkippedCount());
+        assertEquals(1, response.getData().getSkippedByExistingCount());
+        assertEquals(1, response.getData().getSkippedByLimitCount());
+        assertEquals(0, response.getData().getSkippedByCooldownCount());
     }
 }

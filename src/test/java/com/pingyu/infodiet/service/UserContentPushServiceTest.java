@@ -44,6 +44,9 @@ class UserContentPushServiceTest {
         assertEquals(2, result.getTotalCount());
         assertEquals(2, result.getCreatedCount());
         assertEquals(0, result.getSkippedCount());
+        assertEquals(0, result.getSkippedByExistingCount());
+        assertEquals(0, result.getSkippedByLimitCount());
+        assertEquals(0, result.getSkippedByCooldownCount());
         assertEquals(2, service.savedItems.size());
         assertEquals(1L, service.savedItems.get(0).getUserId());
         assertEquals("feishu", service.savedItems.get(0).getPushChannel());
@@ -77,6 +80,9 @@ class UserContentPushServiceTest {
         assertEquals(1, result.getTotalCount());
         assertEquals(0, result.getCreatedCount());
         assertEquals(1, result.getSkippedCount());
+        assertEquals(1, result.getSkippedByExistingCount());
+        assertEquals(0, result.getSkippedByLimitCount());
+        assertEquals(0, result.getSkippedByCooldownCount());
         assertEquals(1, service.savedItems.size());
     }
 
@@ -113,6 +119,9 @@ class UserContentPushServiceTest {
         assertEquals(2, result.getTotalCount());
         assertEquals(0, result.getCreatedCount());
         assertEquals(2, result.getSkippedCount());
+        assertEquals(0, result.getSkippedByExistingCount());
+        assertEquals(2, result.getSkippedByLimitCount());
+        assertEquals(0, result.getSkippedByCooldownCount());
         assertEquals(1, service.savedItems.size());
     }
 
@@ -155,6 +164,9 @@ class UserContentPushServiceTest {
         assertEquals(2, result.getTotalCount());
         assertEquals(1, result.getCreatedCount());
         assertEquals(1, result.getSkippedCount());
+        assertEquals(0, result.getSkippedByExistingCount());
+        assertEquals(1, result.getSkippedByLimitCount());
+        assertEquals(0, result.getSkippedByCooldownCount());
         assertEquals(1, service.savedItems.size());
         assertEquals(301L, service.savedItems.get(0).getContentItemId());
     }
@@ -195,6 +207,9 @@ class UserContentPushServiceTest {
         assertEquals(1, result.getTotalCount());
         assertEquals(0, result.getCreatedCount());
         assertEquals(1, result.getSkippedCount());
+        assertEquals(0, result.getSkippedByExistingCount());
+        assertEquals(0, result.getSkippedByLimitCount());
+        assertEquals(1, result.getSkippedByCooldownCount());
         assertEquals(1, service.savedItems.size());
     }
 
@@ -234,6 +249,9 @@ class UserContentPushServiceTest {
         assertEquals(1, result.getTotalCount());
         assertEquals(1, result.getCreatedCount());
         assertEquals(0, result.getSkippedCount());
+        assertEquals(0, result.getSkippedByExistingCount());
+        assertEquals(0, result.getSkippedByLimitCount());
+        assertEquals(0, result.getSkippedByCooldownCount());
         assertEquals(2, service.savedItems.size());
         assertEquals(402L, service.savedItems.getLast().getContentItemId());
     }

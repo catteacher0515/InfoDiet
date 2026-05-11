@@ -57,6 +57,27 @@ class UserProfileServiceTest {
         assertEquals(6, service.items.getFirst().getPushCooldownHours());
     }
 
+    @Test
+    void updateUserShouldSupportSettingCooldownToZero() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        service.items.add(UserProfile.builder()
+                .id(1L)
+                .nickname("pingyu")
+                .dailyPushLimit(3)
+                .pushCooldownHours(24)
+                .status(1)
+                .build());
+
+        boolean updated = service.updateUser(UserProfile.builder()
+                .id(1L)
+                .pushCooldownHours(0)
+                .build());
+
+        assertEquals(true, updated);
+        assertEquals(0, service.items.getFirst().getPushCooldownHours());
+        assertEquals(3, service.items.getFirst().getDailyPushLimit());
+    }
+
     private static class InMemoryUserProfileService extends UserProfileServiceImpl {
 
         private final List<UserProfile> items = new ArrayList<>();
@@ -65,6 +86,43 @@ class UserProfileServiceTest {
         public boolean save(UserProfile entity) {
             items.add(entity);
             return true;
+        }
+
+        @Override
+        public boolean updateById(UserProfile entity) {
+            for (UserProfile item : items) {
+                if (!item.getId().equals(entity.getId())) {
+                    continue;
+                }
+                if (entity.getNickname() != null) {
+                    item.setNickname(entity.getNickname());
+                }
+                if (entity.getFeishuUserId() != null) {
+                    item.setFeishuUserId(entity.getFeishuUserId());
+                }
+                if (entity.getPushChannel() != null) {
+                    item.setPushChannel(entity.getPushChannel());
+                }
+                if (entity.getDailyPushLimit() != null) {
+                    item.setDailyPushLimit(entity.getDailyPushLimit());
+                }
+                if (entity.getPushCooldownHours() != null) {
+                    item.setPushCooldownHours(entity.getPushCooldownHours());
+                }
+                if (entity.getStatus() != null) {
+                    item.setStatus(entity.getStatus());
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public UserProfile getById(java.io.Serializable id) {
+            return items.stream()
+                    .filter(item -> item.getId().equals(id))
+                    .findFirst()
+                    .orElse(null);
         }
 
         @Override

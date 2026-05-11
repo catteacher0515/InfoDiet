@@ -38,11 +38,14 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
     public CreatePushResult createPendingPushes() {
         Map<Long, List<ContentItem>> matchResult = subscriptionMatchService.matchEnabledUsers();
         if (matchResult == null || matchResult.isEmpty()) {
-            return new CreatePushResult(0, 0, 0);
+            return new CreatePushResult(0, 0, 0, 0, 0, 0);
         }
         int totalCount = 0;
         int createdCount = 0;
         int skippedCount = 0;
+        int skippedByExistingCount = 0;
+        int skippedByLimitCount = 0;
+        int skippedByCooldownCount = 0;
         for (Map.Entry<Long, List<ContentItem>> entry : matchResult.entrySet()) {
             Long userId = entry.getKey();
             List<ContentItem> contentItems = entry.getValue();
@@ -57,6 +60,7 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
             if (isUserInPushCooldown(userProfile, userId)) {
                 totalCount += contentItems.size();
                 skippedCount += contentItems.size();
+                skippedByCooldownCount += contentItems.size();
                 continue;
             }
             int currentPushCount = countTodayPushesByUserId(userId);
@@ -64,10 +68,12 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                 totalCount++;
                 if (existsByUserIdAndContentItemId(userId, contentItem.getId())) {
                     skippedCount++;
+                    skippedByExistingCount++;
                     continue;
                 }
                 if (currentPushCount >= dailyPushLimit) {
                     skippedCount++;
+                    skippedByLimitCount++;
                     continue;
                 }
                 UserContentPush userContentPush = UserContentPush.builder()
@@ -83,7 +89,14 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                 }
             }
         }
-        return new CreatePushResult(totalCount, createdCount, skippedCount);
+        return new CreatePushResult(
+                totalCount,
+                createdCount,
+                skippedCount,
+                skippedByExistingCount,
+                skippedByLimitCount,
+                skippedByCooldownCount
+        );
     }
 
     /**

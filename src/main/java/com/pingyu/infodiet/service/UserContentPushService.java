@@ -52,5 +52,24 @@ public interface UserContentPushService extends IService<UserContentPush> {
          * 跳过数
          */
         private int skippedCount;
+
+        /**
+         * 因已存在跳过数
+         */
+        private int skippedByExistingCount;
+
+        /**
+         * 因超上限跳过数
+         */
+        private int skippedByLimitCount;
+
+        /**
+         * 因冷却期跳过数
+         */
+        private int skippedByCooldownCount;
+
+        public CreatePushResult(int totalCount, int createdCount, int skippedCount) {
+            this(totalCount, createdCount, skippedCount, 0, 0, 0);
+        }
     }
 }

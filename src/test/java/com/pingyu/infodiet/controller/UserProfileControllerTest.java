@@ -63,4 +63,21 @@ class UserProfileControllerTest {
         assertEquals(1, response.getData().size());
         assertEquals("pingyu", response.getData().getFirst().getNickname());
     }
+
+    @Test
+    void updateUserShouldAllowCooldownToBeResetToZero() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        when(userProfileService.updateUser(Mockito.any(UserProfile.class))).thenReturn(true);
+
+        UserProfileController controller = new UserProfileController();
+        ReflectionTestUtils.setField(controller, "userProfileService", userProfileService);
+
+        BaseResponse<Boolean> response = controller.updateUser(UserProfile.builder()
+                .id(1L)
+                .pushCooldownHours(0)
+                .build());
+
+        assertEquals(0, response.getCode());
+        assertEquals(true, response.getData());
+    }
 }
