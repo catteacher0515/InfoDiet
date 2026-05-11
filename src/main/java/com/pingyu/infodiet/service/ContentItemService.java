@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
@@ -65,6 +66,16 @@ public interface ContentItemService extends IService<ContentItem> {
      * @return 过滤结果
      */
     KeywordFilterResult filterByKeywords(List<String> keywords);
+
+    /**
+     * 将内容项转换为统一视图
+     */
+    UnifiedContentItemDTO convertToUnifiedContentItem(ContentItem contentItem);
+
+    /**
+     * 查询统一内容列表
+     */
+    List<UnifiedContentItemDTO> listUnifiedContentItems();
 
     @Data
     @NoArgsConstructor

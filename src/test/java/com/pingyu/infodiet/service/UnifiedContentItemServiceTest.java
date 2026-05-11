@@ -1,0 +1,116 @@
+package com.pingyu.infodiet.service;
+
+import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
+import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.service.impl.ContentItemServiceImpl;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class UnifiedContentItemServiceTest {
+
+    @Test
+    void convertToUnifiedContentItemShouldMapGithubMetrics() {
+        ContentItemServiceImpl service = new ContentItemServiceImpl();
+        ContentItem item = ContentItem.builder()
+                .id(1L)
+                .platform("github")
+                .sourceId("openai/openai-java")
+                .title("openai-java")
+                .authorName("openai")
+                .starCount(1500)
+                .todayStarCount(200)
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
+                .build();
+
+        UnifiedContentItemDTO dto = service.convertToUnifiedContentItem(item);
+
+        assertEquals("repository", dto.getContentType());
+        assertEquals(1500, dto.getPrimaryMetricValue());
+        assertEquals("stars", dto.getPrimaryMetricLabel());
+        assertEquals(200, dto.getSecondaryMetricValue());
+        assertEquals("todayStars", dto.getSecondaryMetricLabel());
+        assertEquals("openai-java#openai", dto.getDedupKey());
+    }
+
+    @Test
+    void convertToUnifiedContentItemShouldMapYoutubeMetrics() {
+        ContentItemServiceImpl service = new ContentItemServiceImpl();
+        ContentItem item = ContentItem.builder()
+                .id(2L)
+                .platform("youtube")
+                .sourceId("video-1")
+                .title("Build InfoDiet with Java")
+                .contentType("video")
+                .authorName("Pingyu Channel")
+                .viewCount(3000)
+                .publishTime(LocalDateTime.of(2026, 5, 10, 8, 0))
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
+                .build();
+
+        UnifiedContentItemDTO dto = service.convertToUnifiedContentItem(item);
+
+        assertEquals("video", dto.getContentType());
+        assertEquals(3000, dto.getPrimaryMetricValue());
+        assertEquals("views", dto.getPrimaryMetricLabel());
+        assertEquals(0, dto.getSecondaryMetricValue());
+        assertEquals("", dto.getSecondaryMetricLabel());
+        assertEquals(LocalDateTime.of(2026, 5, 10, 8, 0), dto.getSortTime());
+    }
+
+    @Test
+    void listUnifiedContentItemsShouldDeduplicateAcrossPlatformsAndSortByTime() {
+        InMemoryUnifiedContentItemService service = new InMemoryUnifiedContentItemService();
+        service.items.add(ContentItem.builder()
+                .id(10L)
+                .platform("github")
+                .sourceId("openai/openai-java")
+                .title("openai-java")
+                .authorName("openai")
+                .starCount(1500)
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
+                .build());
+        service.items.add(ContentItem.builder()
+                .id(11L)
+                .platform("youtube")
+                .sourceId("video-1")
+                .title("openai-java")
+                .authorName("openai")
+                .viewCount(3000)
+                .publishTime(LocalDateTime.of(2026, 5, 10, 8, 0))
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 9, 0))
+                .contentType("video")
+                .build());
+        service.items.add(ContentItem.builder()
+                .id(12L)
+                .platform("youtube")
+                .sourceId("video-2")
+                .title("Build InfoDiet with Java")
+                .authorName("Pingyu Channel")
+                .viewCount(2000)
+                .publishTime(LocalDateTime.of(2026, 5, 11, 11, 0))
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 11, 30))
+                .contentType("video")
+                .build());
+
+        List<UnifiedContentItemDTO> result = service.listUnifiedContentItems();
+
+        assertEquals(2, result.size());
+        assertEquals(12L, result.get(0).getId());
+        assertEquals(11L, result.get(1).getId());
+    }
+
+    private static class InMemoryUnifiedContentItemService extends ContentItemServiceImpl {
+
+        private final List<ContentItem> items = new ArrayList<>();
+
+        @Override
+        public List<ContentItem> list(com.mybatisflex.core.query.QueryWrapper queryWrapper) {
+            return items;
+        }
+    }
+}

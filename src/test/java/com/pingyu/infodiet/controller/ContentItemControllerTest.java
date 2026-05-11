@@ -2,6 +2,7 @@ package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.service.ContentItemService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -32,5 +33,22 @@ class ContentItemControllerTest {
         assertEquals(10, response.getData().getTotalCount());
         assertEquals(4, response.getData().getMatchedCount());
         assertEquals(6, response.getData().getUnmatchedCount());
+    }
+
+    @Test
+    void listUnifiedContentItemsShouldReturnUnifiedList() {
+        ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
+        when(contentItemService.listUnifiedContentItems()).thenReturn(List.of(
+                UnifiedContentItemDTO.builder().id(1L).platform("github").title("openai-java").build()
+        ));
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "contentItemService", contentItemService);
+
+        BaseResponse<List<UnifiedContentItemDTO>> response = controller.listUnifiedContentItems();
+
+        assertEquals(0, response.getCode());
+        assertEquals(1, response.getData().size());
+        assertEquals("github", response.getData().getFirst().getPlatform());
     }
 }
