@@ -38,4 +38,28 @@ class SubscriptionMatchControllerTest {
         assertEquals(103L, response.getData().get(1L).getFirst().getId());
         assertEquals(102L, response.getData().get(2L).getFirst().getId());
     }
+
+    @Test
+    void matchEnabledUsersWithDetailsShouldReturnMatchDetails() {
+        SubscriptionMatchService subscriptionMatchService = Mockito.mock(SubscriptionMatchService.class);
+
+        Map<Long, List<SubscriptionMatchService.MatchDetail>> matchResult = Map.of(
+                1L, List.of(new SubscriptionMatchService.MatchDetail(
+                        ContentItem.builder().id(103L).title("Gemini API update").build(),
+                        8,
+                        List.of("author:Google for Developers", "keyword_include:agent")
+                ))
+        );
+        when(subscriptionMatchService.matchEnabledUsersWithDetails()).thenReturn(matchResult);
+
+        SubscriptionMatchController controller = new SubscriptionMatchController();
+        ReflectionTestUtils.setField(controller, "subscriptionMatchService", subscriptionMatchService);
+
+        BaseResponse<Map<Long, List<SubscriptionMatchService.MatchDetail>>> response =
+                controller.matchEnabledUsersWithDetails();
+
+        assertEquals(0, response.getCode());
+        assertEquals(1, response.getData().size());
+        assertEquals(8, response.getData().get(1L).getFirst().getScore());
+    }
 }

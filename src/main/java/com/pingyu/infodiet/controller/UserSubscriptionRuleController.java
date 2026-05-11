@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,5 +59,20 @@ public class UserSubscriptionRuleController {
     @GetMapping("/list/enabled/{userId}")
     public BaseResponse<List<UserSubscriptionRule>> listEnabledRulesByUserId(@PathVariable Long userId) {
         return ResultUtils.success(userSubscriptionRuleService.listEnabledRulesByUserId(userId));
+    }
+
+    /**
+     * 更新订阅规则
+     */
+    @PutMapping("/update")
+    public BaseResponse<Boolean> updateRule(@RequestBody UserSubscriptionRuleRequest request) {
+        UserSubscriptionRule userSubscriptionRule = UserSubscriptionRule.builder()
+                .id(request.getId())
+                .userId(request.getUserId())
+                .ruleType(request.getRuleType())
+                .ruleValue(request.getRuleValue())
+                .ruleWeight(request.getRuleWeight())
+                .build();
+        return ResultUtils.success(userSubscriptionRuleService.updateRule(userSubscriptionRule));
     }
 }

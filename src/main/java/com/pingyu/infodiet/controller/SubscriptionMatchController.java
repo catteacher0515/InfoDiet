@@ -29,4 +29,12 @@ public class SubscriptionMatchController {
     public BaseResponse<Map<Long, List<ContentItem>>> matchEnabledUsers() {
         return ResultUtils.success(subscriptionMatchService.matchEnabledUsers());
     }
+
+    /**
+     * 查询启用用户的匹配结果明细
+     */
+    @GetMapping("/enabled/details")
+    public BaseResponse<Map<Long, List<SubscriptionMatchService.MatchDetail>>> matchEnabledUsersWithDetails() {
+        return ResultUtils.success(subscriptionMatchService.matchEnabledUsersWithDetails());
+    }
 }

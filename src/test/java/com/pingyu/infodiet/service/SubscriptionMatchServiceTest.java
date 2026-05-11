@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
 import com.pingyu.infodiet.service.impl.SubscriptionMatchServiceImpl;
@@ -152,13 +153,88 @@ class SubscriptionMatchServiceTest {
         assertEquals(List.of(201L, 202L), result.get(1L).stream().map(ContentItem::getId).toList());
     }
 
+    @Test
+    void matchEnabledUsersShouldExcludeAlreadyPushedContent() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        UserSubscriptionRuleService userSubscriptionRuleService = Mockito.mock(UserSubscriptionRuleService.class);
+        ContentItemService contentItemService = new com.pingyu.infodiet.service.impl.ContentItemServiceImpl();
+
+        UserProfile user = UserProfile.builder().id(1L).nickname("pingyu").status(1).build();
+
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(user));
+        when(userSubscriptionRuleService.listEnabledRulesByUserId(1L)).thenReturn(List.of(
+                UserSubscriptionRule.builder().userId(1L).ruleType("keyword_include").ruleValue("agent").ruleWeight(3).status(1).build()
+        ));
+
+        TestableSubscriptionMatchService service = new TestableSubscriptionMatchService();
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "userSubscriptionRuleService", userSubscriptionRuleService);
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+
+        service.contentItems = List.of(
+                ContentItem.builder().id(301L).title("agent workflow").description("match").build(),
+                ContentItem.builder().id(302L).title("agent skills").description("match").build()
+        );
+        service.userPushes = List.of(
+                UserContentPush.builder().userId(1L).contentItemId(301L).pushStatus(1).build()
+        );
+
+        Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
+
+        assertEquals(List.of(302L), result.get(1L).stream().map(ContentItem::getId).toList());
+    }
+
+    @Test
+    void matchEnabledUsersWithDetailsShouldReturnScoreAndMatchedRules() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        UserSubscriptionRuleService userSubscriptionRuleService = Mockito.mock(UserSubscriptionRuleService.class);
+        ContentItemService contentItemService = new com.pingyu.infodiet.service.impl.ContentItemServiceImpl();
+
+        UserProfile user = UserProfile.builder().id(1L).nickname("pingyu").status(1).build();
+
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(user));
+        when(userSubscriptionRuleService.listEnabledRulesByUserId(1L)).thenReturn(List.of(
+                UserSubscriptionRule.builder().userId(1L).ruleType("author").ruleValue("Google for Developers").ruleWeight(5).status(1).build(),
+                UserSubscriptionRule.builder().userId(1L).ruleType("keyword_include").ruleValue("agent").ruleWeight(3).status(1).build()
+        ));
+
+        TestableSubscriptionMatchService service = new TestableSubscriptionMatchService();
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "userSubscriptionRuleService", userSubscriptionRuleService);
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+
+        service.contentItems = List.of(
+                ContentItem.builder()
+                        .id(401L)
+                        .title("Building agents")
+                        .description("agent workflow")
+                        .authorName("Google for Developers")
+                        .build()
+        );
+
+        Map<Long, List<SubscriptionMatchService.MatchDetail>> result = service.matchEnabledUsersWithDetails();
+
+        assertEquals(1, result.size());
+        assertEquals(401L, result.get(1L).getFirst().getContentItem().getId());
+        assertEquals(8, result.get(1L).getFirst().getScore());
+        assertEquals(List.of("author:Google for Developers", "keyword_include:agent"), result.get(1L).getFirst().getMatchedRules());
+    }
+
     private static class TestableSubscriptionMatchService extends SubscriptionMatchServiceImpl {
 
         private List<ContentItem> contentItems = List.of();
+        private List<UserContentPush> userPushes = List.of();
 
         @Override
         protected List<ContentItem> listCandidateContentItems() {
             return contentItems;
+        }
+
+        @Override
+        protected List<UserContentPush> listPushedContentByUserId(Long userId) {
+            return userPushes.stream()
+                    .filter(item -> userId.equals(item.getUserId()))
+                    .toList();
         }
     }
 }

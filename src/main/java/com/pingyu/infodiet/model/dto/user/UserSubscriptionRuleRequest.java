@@ -9,6 +9,11 @@ import lombok.Data;
 public class UserSubscriptionRuleRequest {
 
     /**
+     * 主键
+     */
+    private Long id;
+
+    /**
      * 用户 ID
      */
     private Long userId;

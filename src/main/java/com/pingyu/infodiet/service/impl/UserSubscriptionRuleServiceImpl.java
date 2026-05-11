@@ -46,6 +46,16 @@ public class UserSubscriptionRuleServiceImpl extends ServiceImpl<UserSubscriptio
     }
 
     /**
+     * 更新订阅规则
+     */
+    @Override
+    public boolean updateRule(UserSubscriptionRule userSubscriptionRule) {
+        userSubscriptionRule.setRuleType(StrUtil.trim(userSubscriptionRule.getRuleType()));
+        userSubscriptionRule.setRuleValue(StrUtil.trim(userSubscriptionRule.getRuleValue()));
+        return this.updateById(userSubscriptionRule);
+    }
+
+    /**
      * 查询启用规则列表
      */
     @Override

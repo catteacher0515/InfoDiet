@@ -3,12 +3,13 @@ package com.pingyu.infodiet.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.pingyu.infodiet.mapper.UserContentPushMapper;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.SubscriptionMatchService;
-import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
 import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
 import com.pingyu.infodiet.service.UserProfileService;
 import com.pingyu.infodiet.service.UserSubscriptionRuleService;
@@ -41,14 +42,35 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
     @Resource
     private ContentItemService contentItemService;
 
+    @Resource
+    private UserContentPushMapper userContentPushMapper;
+
     /**
      * 匹配启用用户的订阅内容
      */
     @Override
     public Map<Long, List<ContentItem>> matchEnabledUsers() {
+        Map<Long, List<MatchDetail>> detailResult = matchEnabledUsersWithDetails();
+        Map<Long, List<ContentItem>> result = new LinkedHashMap<>();
+        for (Map.Entry<Long, List<MatchDetail>> entry : detailResult.entrySet()) {
+            result.put(
+                    entry.getKey(),
+                    entry.getValue().stream()
+                            .map(MatchDetail::getContentItem)
+                            .toList()
+            );
+        }
+        return result;
+    }
+
+    /**
+     * 匹配启用用户的订阅内容明细
+     */
+    @Override
+    public Map<Long, List<MatchDetail>> matchEnabledUsersWithDetails() {
         List<UserProfile> enabledUsers = userProfileService.listEnabledUsers();
         List<ContentItem> contentItems = listCandidateContentItems();
-        Map<Long, List<ContentItem>> result = new LinkedHashMap<>();
+        Map<Long, List<MatchDetail>> result = new LinkedHashMap<>();
         if (CollUtil.isEmpty(enabledUsers) || CollUtil.isEmpty(contentItems)) {
             return result;
         }
@@ -57,11 +79,15 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
             if (CollUtil.isEmpty(rules)) {
                 continue;
             }
-            List<MatchedContent> matchedItems = new ArrayList<>();
+            List<UserContentPush> pushedItems = listPushedContentByUserId(userProfile.getId());
+            List<MatchDetail> matchedItems = new ArrayList<>();
             for (ContentItem contentItem : contentItems) {
-                int score = calculateMatchScore(contentItem, rules);
-                if (score > 0) {
-                    matchedItems.add(new MatchedContent(contentItem, score));
+                if (hasBeenPushed(contentItem, pushedItems)) {
+                    continue;
+                }
+                MatchDetail matchDetail = buildMatchDetail(contentItem, rules);
+                if (matchDetail.getScore() > 0) {
+                    matchedItems.add(matchDetail);
                 }
             }
             if (CollUtil.isNotEmpty(matchedItems)) {
@@ -69,9 +95,8 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
                         userProfile.getId(),
                         matchedItems.stream()
                                 .sorted(Comparator
-                                        .comparingInt(MatchedContent::score).reversed()
-                                        .thenComparing(item -> item.content().getId(), Comparator.reverseOrder()))
-                                .map(MatchedContent::content)
+                                        .comparingInt(SubscriptionMatchService.MatchDetail::getScore).reversed()
+                                        .thenComparing(item -> item.getContentItem().getId(), Comparator.reverseOrder()))
                                 .toList()
                 );
             }
@@ -117,19 +142,28 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
      * 计算内容匹配分数
      */
     protected int calculateMatchScore(ContentItem contentItem, List<UserSubscriptionRule> rules) {
+        return buildMatchDetail(contentItem, rules).getScore();
+    }
+
+    /**
+     * 构建匹配明细
+     */
+    protected MatchDetail buildMatchDetail(ContentItem contentItem, List<UserSubscriptionRule> rules) {
         if (contentItem == null || CollUtil.isEmpty(rules)) {
-            return 0;
+            return new MatchDetail(contentItem, 0, List.of());
         }
         int score = 0;
+        List<String> matchedRules = new ArrayList<>();
         for (UserSubscriptionRule rule : rules) {
             if (isExcludeRuleMatched(contentItem, rule)) {
-                return 0;
+                return new MatchDetail(contentItem, 0, List.of());
             }
             if (isIncludeRuleMatched(contentItem, rule)) {
                 score += defaultWeight(rule.getRuleWeight());
+                matchedRules.add(rule.getRuleType() + ":" + rule.getRuleValue());
             }
         }
-        return score;
+        return new MatchDetail(contentItem, score, matchedRules);
     }
 
     /**
@@ -224,6 +258,26 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
     }
 
     /**
+     * 查询用户已推送内容
+     */
+    protected List<UserContentPush> listPushedContentByUserId(Long userId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("userId", userId)
+                .eq("pushStatus", 1);
+        return userContentPushMapper.selectListByQuery(queryWrapper);
+    }
+
+    /**
+     * 判断内容是否已推送
+     */
+    protected boolean hasBeenPushed(ContentItem contentItem, List<UserContentPush> pushedItems) {
+        if (contentItem == null || CollUtil.isEmpty(pushedItems)) {
+            return false;
+        }
+        return pushedItems.stream().anyMatch(item -> contentItem.getId().equals(item.getContentItemId()));
+    }
+
+    /**
      * 查询候选内容
      */
     protected List<ContentItem> listCandidateContentItems() {
@@ -233,9 +287,4 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
         return contentItemService.list(queryWrapper);
     }
 
-    /**
-     * 命中内容
-     */
-    protected record MatchedContent(ContentItem content, int score) {
-    }
 }

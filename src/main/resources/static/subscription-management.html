@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订阅管理</title>
+    <style>
+        :root {
+            --bg: #f4f1ea;
+            --panel: #fffdf8;
+            --line: #d7cdbd;
+            --text: #1f1a14;
+            --muted: #6e6254;
+            --accent: #9d4d2f;
+            --accent-soft: #f0d5ca;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Noto Serif SC", "Songti SC", serif;
+            background:
+                    radial-gradient(circle at top left, #efe6d8 0, transparent 28%),
+                    linear-gradient(135deg, #f7f2ea 0%, #efe7da 100%);
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 20px 60px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 40px;
+            letter-spacing: 1px;
+        }
+
+        .lead {
+            margin: 0 0 28px;
+            color: var(--muted);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255, 253, 248, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(86, 59, 43, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            margin: 0 0 16px;
+            font-size: 22px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 14px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        input, select, button, textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+            font: inherit;
+            background: #fff;
+            color: var(--text);
+        }
+
+        button {
+            background: var(--accent);
+            color: #fffaf5;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.18s ease, opacity 0.18s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            opacity: 0.92;
+        }
+
+        .secondary {
+            background: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .actions button {
+            flex: 1;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .toolbar input {
+            max-width: 180px;
+        }
+
+        .rule-list, .match-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .rule-item, .match-item {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px;
+            background: #fff;
+        }
+
+        .rule-head, .match-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        .meta {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .rule-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .rule-actions button {
+            width: auto;
+            padding: 8px 12px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #fff;
+            border: 1px dashed var(--line);
+            padding: 12px;
+            border-radius: 12px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>订阅管理台</h1>
+    <p class="lead">管理订阅规则，预览命中内容与匹配分数。</p>
+
+    <div class="grid">
+        <section class="card">
+            <h2>规则编辑</h2>
+            <label>
+                用户 ID
+                <input id="userId" type="number" value="1">
+            </label>
+            <label>
+                规则类型
+                <select id="ruleType">
+                    <option value="keyword_include">keyword_include</option>
+                    <option value="keyword_exclude">keyword_exclude</option>
+                    <option value="author">author</option>
+                    <option value="repo">repo</option>
+                    <option value="channel">channel</option>
+                </select>
+            </label>
+            <label>
+                规则值
+                <input id="ruleValue" type="text" placeholder="例如 agent / Google for Developers / vercel-labs/open-agents">
+            </label>
+            <label>
+                权重
+                <input id="ruleWeight" type="number" value="1">
+            </label>
+            <input id="ruleId" type="hidden">
+            <div class="actions">
+                <button id="addButton">新增规则</button>
+                <button id="updateButton" class="secondary">更新规则</button>
+            </div>
+            <div class="actions">
+                <button id="refreshRules" class="secondary">刷新规则</button>
+                <button id="previewButton">预览匹配</button>
+            </div>
+            <pre id="messageBox">等待操作...</pre>
+        </section>
+
+        <section class="card">
+            <div class="toolbar">
+                <h2 style="margin: 0;">规则列表</h2>
+            </div>
+            <div id="ruleList" class="rule-list"></div>
+        </section>
+    </div>
+
+    <section class="card" style="margin-top: 20px;">
+        <h2>匹配预览</h2>
+        <div id="matchList" class="match-list"></div>
+    </section>
+</div>
+
+<script>
+    const userIdInput = document.getElementById('userId');
+    const ruleIdInput = document.getElementById('ruleId');
+    const ruleTypeInput = document.getElementById('ruleType');
+    const ruleValueInput = document.getElementById('ruleValue');
+    const ruleWeightInput = document.getElementById('ruleWeight');
+    const messageBox = document.getElementById('messageBox');
+    const ruleList = document.getElementById('ruleList');
+    const matchList = document.getElementById('matchList');
+
+    function userId() {
+        return Number(userIdInput.value || 1);
+    }
+
+    function showMessage(message) {
+        messageBox.textContent = message;
+    }
+
+    async function request(url, options = {}) {
+        const response = await fetch(url, {
+            headers: {'Content-Type': 'application/json'},
+            ...options
+        });
+        return response.json();
+    }
+
+    function fillForm(rule) {
+        ruleIdInput.value = rule.id || '';
+        ruleTypeInput.value = rule.ruleType || 'keyword_include';
+        ruleValueInput.value = rule.ruleValue || '';
+        ruleWeightInput.value = rule.ruleWeight || 1;
+    }
+
+    async function loadRules() {
+        const result = await request(`/api/user/rule/list/enabled/${userId()}`);
+        if (result.code !== 0) {
+            showMessage(JSON.stringify(result, null, 2));
+            return;
+        }
+        ruleList.innerHTML = result.data.map(rule => `
+            <div class="rule-item">
+                <div class="rule-head">
+                    <strong>${rule.ruleValue}</strong>
+                    <span class="tag">${rule.ruleType}</span>
+                </div>
+                <div class="meta">权重：${rule.ruleWeight} | ID：${rule.id}</div>
+                <div class="rule-actions">
+                    <button class="secondary" data-action="edit" data-id="${rule.id}">编辑</button>
+                    <button data-action="delete" data-id="${rule.id}">删除</button>
+                </div>
+            </div>
+        `).join('');
+
+        [...ruleList.querySelectorAll('button')].forEach(button => {
+            button.addEventListener('click', async () => {
+                const id = Number(button.dataset.id);
+                const rule = result.data.find(item => item.id === id);
+                if (button.dataset.action === 'edit') {
+                    fillForm(rule);
+                    showMessage(`已载入规则 ${id}，可以直接修改。`);
+                    return;
+                }
+                const deleteResult = await request('/api/user/rule/remove', {
+                    method: 'DELETE',
+                    body: JSON.stringify({
+                        userId: rule.userId,
+                        ruleType: rule.ruleType,
+                        ruleValue: rule.ruleValue
+                    })
+                });
+                showMessage(JSON.stringify(deleteResult, null, 2));
+                await loadRules();
+            });
+        });
+    }
+
+    async function previewMatches() {
+        const result = await request('/api/subscription/match/enabled/details');
+        if (result.code !== 0) {
+            showMessage(JSON.stringify(result, null, 2));
+            return;
+        }
+        const items = result.data[String(userId())] || [];
+        matchList.innerHTML = items.map(item => `
+            <div class="match-item">
+                <div class="match-head">
+                    <strong>${item.contentItem.title}</strong>
+                    <span class="tag">分数 ${item.score}</span>
+                </div>
+                <div class="meta">平台：${item.contentItem.platform || '-'} | 作者：${item.contentItem.authorName || '-'}</div>
+                <div class="meta">命中规则：${item.matchedRules.join('，') || '无'}</div>
+            </div>
+        `).join('') || '<pre>当前用户暂无匹配结果。</pre>';
+    }
+
+    document.getElementById('addButton').addEventListener('click', async () => {
+        const result = await request('/api/user/rule/add', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: userId(),
+                ruleType: ruleTypeInput.value,
+                ruleValue: ruleValueInput.value,
+                ruleWeight: Number(ruleWeightInput.value || 1)
+            })
+        });
+        showMessage(JSON.stringify(result, null, 2));
+        await loadRules();
+    });
+
+    document.getElementById('updateButton').addEventListener('click', async () => {
+        const result = await request('/api/user/rule/update', {
+            method: 'PUT',
+            body: JSON.stringify({
+                id: Number(ruleIdInput.value),
+                userId: userId(),
+                ruleType: ruleTypeInput.value,
+                ruleValue: ruleValueInput.value,
+                ruleWeight: Number(ruleWeightInput.value || 1)
+            })
+        });
+        showMessage(JSON.stringify(result, null, 2));
+        await loadRules();
+    });
+
+    document.getElementById('refreshRules').addEventListener('click', loadRules);
+    document.getElementById('previewButton').addEventListener('click', previewMatches);
+
+    loadRules();
+</script>
+</body>
+</html>

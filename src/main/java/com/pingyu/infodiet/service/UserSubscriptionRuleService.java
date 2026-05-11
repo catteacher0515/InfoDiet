@@ -21,6 +21,11 @@ public interface UserSubscriptionRuleService extends IService<UserSubscriptionRu
     boolean removeRule(Long userId, String ruleType, String ruleValue);
 
     /**
+     * 更新订阅规则
+     */
+    boolean updateRule(UserSubscriptionRule userSubscriptionRule);
+
+    /**
      * 查询启用规则列表
      */
     List<UserSubscriptionRule> listEnabledRulesByUserId(Long userId);
