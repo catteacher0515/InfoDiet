@@ -1,5 +1,6 @@
 package com.pingyu.infodiet.service;
 
+import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.service.impl.ContentItemServiceImpl;
@@ -102,6 +103,53 @@ class UnifiedContentItemServiceTest {
         assertEquals(2, result.size());
         assertEquals(12L, result.get(0).getId());
         assertEquals(11L, result.get(1).getId());
+    }
+
+    @Test
+    void listUnifiedContentItemsShouldSupportPlatformFilterAndMetricSort() {
+        InMemoryUnifiedContentItemService service = new InMemoryUnifiedContentItemService();
+        service.items.add(ContentItem.builder()
+                .id(21L)
+                .platform("github")
+                .sourceId("openai/openai-java")
+                .title("openai-java")
+                .authorName("openai")
+                .starCount(1500)
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
+                .build());
+        service.items.add(ContentItem.builder()
+                .id(22L)
+                .platform("github")
+                .sourceId("spring-projects/spring-ai")
+                .title("spring-ai")
+                .authorName("spring-projects")
+                .starCount(2000)
+                .crawlTime(LocalDateTime.of(2026, 5, 10, 10, 0))
+                .build());
+        service.items.add(ContentItem.builder()
+                .id(23L)
+                .platform("youtube")
+                .sourceId("video-3")
+                .title("Build InfoDiet with Java")
+                .authorName("Pingyu Channel")
+                .contentType("video")
+                .viewCount(5000)
+                .publishTime(LocalDateTime.of(2026, 5, 11, 12, 0))
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 12, 30))
+                .build());
+
+        UnifiedContentQueryRequest request = new UnifiedContentQueryRequest();
+        request.setPlatform("github");
+        request.setContentType("repository");
+        request.setSortBy("metric");
+        request.setLimit(1);
+
+        List<UnifiedContentItemDTO> result = service.listUnifiedContentItems(request);
+
+        assertEquals(1, result.size());
+        assertEquals(22L, result.getFirst().getId());
+        assertEquals("github", result.getFirst().getPlatform());
+        assertEquals("repository", result.getFirst().getContentType());
     }
 
     private static class InMemoryUnifiedContentItemService extends ContentItemServiceImpl {

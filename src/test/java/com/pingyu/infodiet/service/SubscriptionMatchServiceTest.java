@@ -4,6 +4,7 @@ import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.service.impl.SubscriptionMatchServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -220,14 +221,115 @@ class SubscriptionMatchServiceTest {
         assertEquals(List.of("author:Google for Developers", "keyword_include:agent"), result.get(1L).getFirst().getMatchedRules());
     }
 
+    @Test
+    void matchEnabledUsersShouldUseUnifiedCandidatesToAvoidDuplicateContent() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        UserSubscriptionRuleService userSubscriptionRuleService = Mockito.mock(UserSubscriptionRuleService.class);
+        ContentItemService contentItemService = new com.pingyu.infodiet.service.impl.ContentItemServiceImpl();
+
+        UserProfile user = UserProfile.builder().id(1L).nickname("pingyu").status(1).build();
+
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(user));
+        when(userSubscriptionRuleService.listEnabledRulesByUserId(1L)).thenReturn(List.of(
+                UserSubscriptionRule.builder().userId(1L).ruleType("keyword_include").ruleValue("agent").ruleWeight(3).status(1).build()
+        ));
+
+        TestableSubscriptionMatchService service = new TestableSubscriptionMatchService();
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "userSubscriptionRuleService", userSubscriptionRuleService);
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+
+        ContentItem duplicateOldItem = ContentItem.builder()
+                .id(501L)
+                .platform("github")
+                .sourceId("vercel-labs/open-agents")
+                .title("open agents")
+                .description("agent workflow")
+                .authorName("vercel")
+                .build();
+        ContentItem duplicateNewItem = ContentItem.builder()
+                .id(502L)
+                .platform("youtube")
+                .sourceId("video-dup")
+                .title("open agents")
+                .description("agent workflow")
+                .authorName("vercel")
+                .build();
+
+        service.unifiedCandidates = List.of(
+                UnifiedContentItemDTO.builder().id(502L).dedupKey("open agents#vercel").build()
+        );
+        service.contentItems = List.of(duplicateOldItem, duplicateNewItem);
+
+        Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
+
+        assertEquals(List.of(502L), result.get(1L).stream().map(ContentItem::getId).toList());
+    }
+
+    @Test
+    void matchEnabledUsersShouldTreatUnifiedDuplicateAsAlreadyPushed() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        UserSubscriptionRuleService userSubscriptionRuleService = Mockito.mock(UserSubscriptionRuleService.class);
+        ContentItemService contentItemService = new com.pingyu.infodiet.service.impl.ContentItemServiceImpl();
+
+        UserProfile user = UserProfile.builder().id(1L).nickname("pingyu").status(1).build();
+
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(user));
+        when(userSubscriptionRuleService.listEnabledRulesByUserId(1L)).thenReturn(List.of(
+                UserSubscriptionRule.builder().userId(1L).ruleType("keyword_include").ruleValue("agent").ruleWeight(3).status(1).build()
+        ));
+
+        TestableSubscriptionMatchService service = new TestableSubscriptionMatchService();
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "userSubscriptionRuleService", userSubscriptionRuleService);
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+
+        ContentItem pushedGithubItem = ContentItem.builder()
+                .id(601L)
+                .platform("github")
+                .sourceId("vercel-labs/open-agents")
+                .title("open agents")
+                .description("agent workflow")
+                .authorName("vercel")
+                .build();
+        ContentItem duplicateYoutubeItem = ContentItem.builder()
+                .id(602L)
+                .platform("youtube")
+                .sourceId("video-open-agents")
+                .title("open agents")
+                .description("agent workflow")
+                .authorName("vercel")
+                .build();
+
+        service.contentItems = List.of(duplicateYoutubeItem);
+        service.contentById = Map.of(601L, pushedGithubItem);
+        service.userPushes = List.of(
+                UserContentPush.builder().userId(1L).contentItemId(601L).pushStatus(1).build()
+        );
+
+        Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
+
+        assertEquals(0, result.size());
+    }
+
     private static class TestableSubscriptionMatchService extends SubscriptionMatchServiceImpl {
 
         private List<ContentItem> contentItems = List.of();
         private List<UserContentPush> userPushes = List.of();
+        private List<UnifiedContentItemDTO> unifiedCandidates = null;
+        private Map<Long, ContentItem> contentById = Map.of();
 
         @Override
         protected List<ContentItem> listCandidateContentItems() {
+            if (unifiedCandidates != null) {
+                return super.listCandidateContentItems();
+            }
             return contentItems;
+        }
+
+        @Override
+        protected List<UnifiedContentItemDTO> listUnifiedCandidateContentItems() {
+            return unifiedCandidates;
         }
 
         @Override
@@ -235,6 +337,18 @@ class SubscriptionMatchServiceTest {
             return userPushes.stream()
                     .filter(item -> userId.equals(item.getUserId()))
                     .toList();
+        }
+
+        @Override
+        protected ContentItem getContentItemById(Long contentItemId) {
+            ContentItem contentItem = contentById.get(contentItemId);
+            if (contentItem != null) {
+                return contentItem;
+            }
+            return contentItems.stream()
+                    .filter(item -> contentItemId.equals(item.getId()))
+                    .findFirst()
+                    .orElse(null);
         }
     }
 }

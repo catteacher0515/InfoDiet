@@ -2,6 +2,7 @@ package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
@@ -76,6 +77,11 @@ public interface ContentItemService extends IService<ContentItem> {
      * 查询统一内容列表
      */
     List<UnifiedContentItemDTO> listUnifiedContentItems();
+
+    /**
+     * 按条件查询统一内容列表
+     */
+    List<UnifiedContentItemDTO> listUnifiedContentItems(UnifiedContentQueryRequest request);
 
     @Data
     @NoArgsConstructor

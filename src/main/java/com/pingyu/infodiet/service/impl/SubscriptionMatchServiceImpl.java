@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.pingyu.infodiet.mapper.UserContentPushMapper;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
@@ -274,17 +275,71 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
         if (contentItem == null || CollUtil.isEmpty(pushedItems)) {
             return false;
         }
-        return pushedItems.stream().anyMatch(item -> contentItem.getId().equals(item.getContentItemId()));
+        if (pushedItems.stream().anyMatch(item -> contentItem.getId().equals(item.getContentItemId()))) {
+            return true;
+        }
+        String currentDedupKey = buildDedupKey(contentItem);
+        if (StrUtil.isBlank(currentDedupKey)) {
+            return false;
+        }
+        return pushedItems.stream()
+                .map(UserContentPush::getContentItemId)
+                .map(this::getContentItemById)
+                .filter(item -> item != null)
+                .map(this::buildDedupKey)
+                .anyMatch(currentDedupKey::equals);
     }
 
     /**
      * 查询候选内容
      */
     protected List<ContentItem> listCandidateContentItems() {
+        List<UnifiedContentItemDTO> unifiedItems = listUnifiedCandidateContentItems();
+        if (CollUtil.isNotEmpty(unifiedItems)) {
+            return unifiedItems.stream()
+                    .map(UnifiedContentItemDTO::getId)
+                    .map(this::getContentItemById)
+                    .filter(item -> item != null)
+                    .toList();
+        }
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("isDelete", 0)
                 .orderBy("id", false);
         return contentItemService.list(queryWrapper);
+    }
+
+    /**
+     * 查询统一候选内容
+     */
+    protected List<UnifiedContentItemDTO> listUnifiedCandidateContentItems() {
+        return contentItemService.listUnifiedContentItems();
+    }
+
+    /**
+     * 根据 ID 查询内容
+     */
+    protected ContentItem getContentItemById(Long contentItemId) {
+        return contentItemService.getById(contentItemId);
+    }
+
+    /**
+     * 构建内容去重键
+     */
+    protected String buildDedupKey(ContentItem contentItem) {
+        if (contentItem == null) {
+            return "";
+        }
+        String normalizedTitle = normalize(contentItem.getTitle());
+        String normalizedAuthor = normalize(contentItem.getAuthorName());
+        if (StrUtil.isNotBlank(normalizedTitle) && StrUtil.isNotBlank(normalizedAuthor)) {
+            return normalizedTitle + "#" + normalizedAuthor;
+        }
+        String normalizedPlatform = normalize(contentItem.getPlatform());
+        String normalizedSourceId = normalize(contentItem.getSourceId());
+        if (StrUtil.isNotBlank(normalizedPlatform) && StrUtil.isNotBlank(normalizedSourceId)) {
+            return normalizedPlatform + "#" + normalizedSourceId;
+        }
+        return "";
     }
 
 }

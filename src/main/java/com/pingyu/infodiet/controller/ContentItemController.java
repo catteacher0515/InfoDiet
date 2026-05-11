@@ -5,6 +5,7 @@ import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.common.ResultUtils;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.service.ContentItemService;
 import jakarta.annotation.Resource;
@@ -112,6 +113,14 @@ public class ContentItemController {
     @GetMapping("list/unified")
     public BaseResponse<List<UnifiedContentItemDTO>> listUnifiedContentItems() {
         return ResultUtils.success(contentItemService.listUnifiedContentItems());
+    }
+
+    /**
+     * 按条件查询统一内容列表
+     */
+    @GetMapping("list/unified/query")
+    public BaseResponse<List<UnifiedContentItemDTO>> listUnifiedContentItems(UnifiedContentQueryRequest request) {
+        return ResultUtils.success(contentItemService.listUnifiedContentItems(request));
     }
 
 }

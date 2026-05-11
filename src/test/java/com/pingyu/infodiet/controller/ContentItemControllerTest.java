@@ -3,6 +3,7 @@ package com.pingyu.infodiet.controller;
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.service.ContentItemService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -50,5 +51,25 @@ class ContentItemControllerTest {
         assertEquals(0, response.getCode());
         assertEquals(1, response.getData().size());
         assertEquals("github", response.getData().getFirst().getPlatform());
+    }
+
+    @Test
+    void listUnifiedContentItemsWithQueryShouldReturnFilteredList() {
+        ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
+        UnifiedContentQueryRequest request = new UnifiedContentQueryRequest();
+        request.setPlatform("youtube");
+        request.setSortBy("metric");
+        when(contentItemService.listUnifiedContentItems(request)).thenReturn(List.of(
+                UnifiedContentItemDTO.builder().id(2L).platform("youtube").title("Build InfoDiet").build()
+        ));
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "contentItemService", contentItemService);
+
+        BaseResponse<List<UnifiedContentItemDTO>> response = controller.listUnifiedContentItems(request);
+
+        assertEquals(0, response.getCode());
+        assertEquals(1, response.getData().size());
+        assertEquals("youtube", response.getData().getFirst().getPlatform());
     }
 }

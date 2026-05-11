@@ -3,9 +3,10 @@ package com.pingyu.infodiet.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.ContentItemMapper;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
+import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
@@ -217,6 +218,14 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      */
     @Override
     public List<UnifiedContentItemDTO> listUnifiedContentItems() {
+        return listUnifiedContentItems(new UnifiedContentQueryRequest());
+    }
+
+    /**
+     * 按条件查询统一内容列表
+     */
+    @Override
+    public List<UnifiedContentItemDTO> listUnifiedContentItems(UnifiedContentQueryRequest request) {
         List<ContentItem> contentItems = this.list(QueryWrapper.create().eq("isDelete", 0));
         if (CollUtil.isEmpty(contentItems)) {
             return List.of();
@@ -225,7 +234,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .map(this::convertToUnifiedContentItem)
                 .filter(item -> item != null && StrUtil.isNotBlank(item.getDedupKey()))
                 .toList();
-        return deduplicateAndSortUnifiedItems(unifiedItems);
+        return filterAndSortUnifiedItems(deduplicateAndSortUnifiedItems(unifiedItems), request);
     }
 
     /**
@@ -333,7 +342,12 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
         if (StrUtil.isNotBlank(normalizedTitle) && StrUtil.isNotBlank(normalizedAuthor)) {
             return normalizedTitle + "#" + normalizedAuthor;
         }
-        return normalizeText(contentItem.getPlatform()) + "#" + normalizeText(contentItem.getSourceId());
+        String normalizedPlatform = normalizeText(contentItem.getPlatform());
+        String normalizedSourceId = normalizeText(contentItem.getSourceId());
+        if (StrUtil.isNotBlank(normalizedPlatform) && StrUtil.isNotBlank(normalizedSourceId)) {
+            return normalizedPlatform + "#" + normalizedSourceId;
+        }
+        return "";
     }
 
     /**
@@ -359,6 +373,29 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
     }
 
     /**
+     * 过滤并排序统一内容
+     */
+    protected List<UnifiedContentItemDTO> filterAndSortUnifiedItems(
+            List<UnifiedContentItemDTO> items,
+            UnifiedContentQueryRequest request
+    ) {
+        if (CollUtil.isEmpty(items)) {
+            return List.of();
+        }
+        UnifiedContentQueryRequest safeRequest = request == null ? new UnifiedContentQueryRequest() : request;
+        List<UnifiedContentItemDTO> filteredItems = items.stream()
+                .filter(item -> matchPlatform(item, safeRequest.getPlatform()))
+                .filter(item -> matchContentType(item, safeRequest.getContentType()))
+                .sorted(buildUnifiedSortComparator(safeRequest.getSortBy()))
+                .toList();
+        Integer limit = safeRequest.getLimit();
+        if (limit == null || limit <= 0 || filteredItems.size() <= limit) {
+            return filteredItems;
+        }
+        return filteredItems.subList(0, limit);
+    }
+
+    /**
      * 比较统一内容优先级
      */
     protected int compareUnifiedItem(UnifiedContentItemDTO current, UnifiedContentItemDTO existing) {
@@ -370,6 +407,42 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .thenComparing(UnifiedContentItemDTO::getId,
                         Comparator.nullsLast(Comparator.reverseOrder()));
         return comparator.compare(existing, current);
+    }
+
+    /**
+     * 统一内容排序器
+     */
+    protected Comparator<UnifiedContentItemDTO> buildUnifiedSortComparator(String sortBy) {
+        if (StrUtil.equalsIgnoreCase(StrUtil.trim(sortBy), "metric")) {
+            return Comparator
+                    .comparing(UnifiedContentItemDTO::getPrimaryMetricValue,
+                            Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(UnifiedContentItemDTO::getSortTime,
+                            Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(UnifiedContentItemDTO::getId,
+                            Comparator.nullsLast(Comparator.reverseOrder()));
+        }
+        return Comparator
+                .comparing(UnifiedContentItemDTO::getSortTime,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(UnifiedContentItemDTO::getPrimaryMetricValue,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(UnifiedContentItemDTO::getId,
+                        Comparator.nullsLast(Comparator.reverseOrder()));
+    }
+
+    /**
+     * 判断平台是否匹配
+     */
+    protected boolean matchPlatform(UnifiedContentItemDTO item, String platform) {
+        return StrUtil.isBlank(platform) || StrUtil.equalsIgnoreCase(StrUtil.trim(item.getPlatform()), StrUtil.trim(platform));
+    }
+
+    /**
+     * 判断内容类型是否匹配
+     */
+    protected boolean matchContentType(UnifiedContentItemDTO item, String contentType) {
+        return StrUtil.isBlank(contentType) || StrUtil.equalsIgnoreCase(StrUtil.trim(item.getContentType()), StrUtil.trim(contentType));
     }
 
     /**
