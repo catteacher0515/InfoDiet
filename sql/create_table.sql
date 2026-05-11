@@ -60,6 +60,22 @@ create table if not exists user_keyword_subscription
     index idx_userId_status (userId, status)
 ) comment '用户关键词订阅表' collate = utf8mb4_unicode_ci;
 
+create table if not exists user_subscription_rule
+(
+    id          bigint auto_increment comment '主键' primary key,
+    userId      bigint                                 not null comment '用户 ID',
+    ruleType    varchar(64)                            not null comment '规则类型',
+    ruleValue   varchar(256)                           not null comment '规则值',
+    ruleWeight  int                                    not null default 1 comment '规则权重',
+    status      tinyint                                not null default 1 comment '状态 0-禁用 1-启用',
+    createTime  datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
+    updateTime  datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete    tinyint  default 0                     not null comment '是否删除',
+    unique key uk_user_rule (userId, ruleType, ruleValue),
+    index idx_userId_status (userId, status),
+    index idx_ruleType_value (ruleType, ruleValue)
+) comment '用户订阅规则表' collate = utf8mb4_unicode_ci;
+
 create table if not exists user_content_push
 (
     id            bigint auto_increment comment '主键' primary key,

@@ -15,7 +15,6 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +45,7 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
         int skippedCount = 0;
         for (Map.Entry<Long, List<ContentItem>> entry : matchResult.entrySet()) {
             Long userId = entry.getKey();
-            List<ContentItem> contentItems = sortContentItemsByPriority(entry.getValue());
+            List<ContentItem> contentItems = entry.getValue();
             if (CollUtil.isEmpty(contentItems)) {
                 continue;
             }
@@ -139,96 +138,6 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                 .ge("createTime", startOfDay)
                 .lt("createTime", startOfNextDay);
         return (int) this.mapper.selectCountByQuery(queryWrapper);
-    }
-
-    /**
-     * 按优先级排序内容
-     */
-    protected List<ContentItem> sortContentItemsByPriority(List<ContentItem> contentItems) {
-        if (CollUtil.isEmpty(contentItems)) {
-            return contentItems;
-        }
-        return contentItems.stream()
-                .sorted(buildContentPriorityComparator())
-                .toList();
-    }
-
-    /**
-     * 构建内容优先级比较器
-     */
-    private Comparator<ContentItem> buildContentPriorityComparator() {
-        return Comparator
-                .comparingInt(this::platformPriority)
-                .thenComparing(this::githubTodayStarCount, Comparator.reverseOrder())
-                .thenComparing(this::githubStarCount, Comparator.reverseOrder())
-                .thenComparing(this::contentPublishTime, Comparator.reverseOrder())
-                .thenComparing(this::contentCrawlTime, Comparator.reverseOrder())
-                .thenComparing(this::contentId, Comparator.reverseOrder());
-    }
-
-    /**
-     * 平台优先级
-     */
-    private int platformPriority(ContentItem contentItem) {
-        if (contentItem == null) {
-            return Integer.MAX_VALUE;
-        }
-        if ("github".equalsIgnoreCase(contentItem.getPlatform())) {
-            return 1;
-        }
-        if ("youtube".equalsIgnoreCase(contentItem.getPlatform())) {
-            return 2;
-        }
-        return 3;
-    }
-
-    /**
-     * GitHub 今日 Star 数
-     */
-    private Integer githubTodayStarCount(ContentItem contentItem) {
-        return defaultNumber(contentItem == null ? null : contentItem.getTodayStarCount());
-    }
-
-    /**
-     * GitHub 总 Star 数
-     */
-    private Integer githubStarCount(ContentItem contentItem) {
-        return defaultNumber(contentItem == null ? null : contentItem.getStarCount());
-    }
-
-    /**
-     * 内容发布时间
-     */
-    private LocalDateTime contentPublishTime(ContentItem contentItem) {
-        return contentItem == null ? LocalDateTime.MIN : defaultTime(contentItem.getPublishTime());
-    }
-
-    /**
-     * 内容抓取时间
-     */
-    private LocalDateTime contentCrawlTime(ContentItem contentItem) {
-        return contentItem == null ? LocalDateTime.MIN : defaultTime(contentItem.getCrawlTime());
-    }
-
-    /**
-     * 内容主键
-     */
-    private Long contentId(ContentItem contentItem) {
-        return contentItem == null ? Long.MIN_VALUE : contentItem.getId();
-    }
-
-    /**
-     * 数值默认值
-     */
-    private Integer defaultNumber(Integer value) {
-        return value == null ? 0 : value;
-    }
-
-    /**
-     * 时间默认值
-     */
-    private LocalDateTime defaultTime(LocalDateTime value) {
-        return value == null ? LocalDateTime.MIN : value;
     }
 
     /**

@@ -117,69 +117,26 @@ class UserContentPushServiceTest {
     }
 
     @Test
-    void createPendingPushesShouldPreferHigherPriorityGithubContentWhenLimited() {
+    void createPendingPushesShouldRespectMatchOrderWhenLimited() {
         SubscriptionMatchService subscriptionMatchService = Mockito.mock(SubscriptionMatchService.class);
         UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
 
-        ContentItem lowPriorityItem = ContentItem.builder()
-                .id(101L)
-                .platform("github")
-                .title("low priority repo")
-                .todayStarCount(10)
-                .starCount(200)
-                .build();
-        ContentItem highPriorityItem = ContentItem.builder()
-                .id(102L)
-                .platform("github")
-                .title("high priority repo")
-                .todayStarCount(100)
-                .starCount(500)
-                .build();
-
-        when(subscriptionMatchService.matchEnabledUsers()).thenReturn(Map.of(
-                1L, List.of(lowPriorityItem, highPriorityItem)
-        ));
-        when(userProfileService.getUserById(1L)).thenReturn(
-                com.pingyu.infodiet.model.entity.UserProfile.builder()
-                        .id(1L)
-                        .pushChannel("feishu")
-                        .dailyPushLimit(1)
-                        .build()
-        );
-
-        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
-        ReflectionTestUtils.setField(service, "subscriptionMatchService", subscriptionMatchService);
-        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
-
-        UserContentPushService.CreatePushResult result = service.createPendingPushes();
-
-        assertEquals(2, result.getTotalCount());
-        assertEquals(1, result.getCreatedCount());
-        assertEquals(1, result.getSkippedCount());
-        assertEquals(1, service.savedItems.size());
-        assertEquals(102L, service.savedItems.get(0).getContentItemId());
-    }
-
-    @Test
-    void createPendingPushesShouldPreferNewerYoutubeContentWhenLimited() {
-        SubscriptionMatchService subscriptionMatchService = Mockito.mock(SubscriptionMatchService.class);
-        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
-
-        ContentItem olderVideo = ContentItem.builder()
-                .id(201L)
+        ContentItem higherScoreItem = ContentItem.builder()
+                .id(301L)
                 .platform("youtube")
-                .title("older video")
+                .title("higher score item")
                 .publishTime(LocalDateTime.of(2026, 5, 9, 10, 0))
                 .build();
-        ContentItem newerVideo = ContentItem.builder()
-                .id(202L)
-                .platform("youtube")
-                .title("newer video")
-                .publishTime(LocalDateTime.of(2026, 5, 10, 10, 0))
+        ContentItem lowerScoreButPlatformPreferredItem = ContentItem.builder()
+                .id(302L)
+                .platform("github")
+                .title("lower score item")
+                .todayStarCount(10)
+                .starCount(100)
                 .build();
 
         when(subscriptionMatchService.matchEnabledUsers()).thenReturn(Map.of(
-                1L, List.of(olderVideo, newerVideo)
+                1L, List.of(higherScoreItem, lowerScoreButPlatformPreferredItem)
         ));
         when(userProfileService.getUserById(1L)).thenReturn(
                 com.pingyu.infodiet.model.entity.UserProfile.builder()
@@ -199,7 +156,7 @@ class UserContentPushServiceTest {
         assertEquals(1, result.getCreatedCount());
         assertEquals(1, result.getSkippedCount());
         assertEquals(1, service.savedItems.size());
-        assertEquals(202L, service.savedItems.get(0).getContentItemId());
+        assertEquals(301L, service.savedItems.get(0).getContentItemId());
     }
 
     private static class InMemoryUserContentPushService extends UserContentPushServiceImpl {

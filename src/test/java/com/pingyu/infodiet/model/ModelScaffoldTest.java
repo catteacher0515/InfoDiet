@@ -9,6 +9,7 @@ import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserKeywordSubscription;
 import com.pingyu.infodiet.model.entity.UserProfile;
+import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -116,5 +117,25 @@ class ModelScaffoldTest {
         assertEquals(Integer.class, UserContentPush.class.getDeclaredField("pushStatus").getType());
         assertEquals(String.class, UserContentPush.class.getDeclaredField("failReason").getType());
         assertEquals(LocalDateTime.class, UserContentPush.class.getDeclaredField("pushTime").getType());
+    }
+
+    @Test
+    void userSubscriptionRuleShouldBeMyBatisFlexEntityForRuleTable() throws NoSuchFieldException {
+        Table table = UserSubscriptionRule.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("user_subscription_rule", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(UserSubscriptionRule.class));
+
+        Field idField = UserSubscriptionRule.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(Long.class, UserSubscriptionRule.class.getDeclaredField("userId").getType());
+        assertEquals(String.class, UserSubscriptionRule.class.getDeclaredField("ruleType").getType());
+        assertEquals(String.class, UserSubscriptionRule.class.getDeclaredField("ruleValue").getType());
+        assertEquals(Integer.class, UserSubscriptionRule.class.getDeclaredField("ruleWeight").getType());
+        assertEquals(Integer.class, UserSubscriptionRule.class.getDeclaredField("status").getType());
+        assertEquals(LocalDateTime.class, UserSubscriptionRule.class.getDeclaredField("createTime").getType());
     }
 }

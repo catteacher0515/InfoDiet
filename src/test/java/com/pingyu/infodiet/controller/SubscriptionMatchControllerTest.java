@@ -20,7 +20,10 @@ class SubscriptionMatchControllerTest {
         SubscriptionMatchService subscriptionMatchService = Mockito.mock(SubscriptionMatchService.class);
 
         Map<Long, List<ContentItem>> matchResult = Map.of(
-                1L, List.of(ContentItem.builder().id(101L).title("agent workflow").build()),
+                1L, List.of(
+                        ContentItem.builder().id(103L).title("Gemini API update").build(),
+                        ContentItem.builder().id(101L).title("agent workflow").build()
+                ),
                 2L, List.of(ContentItem.builder().id(102L).title("java tutorial").build())
         );
         when(subscriptionMatchService.matchEnabledUsers()).thenReturn(matchResult);
@@ -32,7 +35,7 @@ class SubscriptionMatchControllerTest {
 
         assertEquals(0, response.getCode());
         assertEquals(2, response.getData().size());
-        assertEquals(101L, response.getData().get(1L).getFirst().getId());
+        assertEquals(103L, response.getData().get(1L).getFirst().getId());
         assertEquals(102L, response.getData().get(2L).getFirst().getId());
     }
 }
