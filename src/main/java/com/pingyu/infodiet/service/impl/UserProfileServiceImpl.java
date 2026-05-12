@@ -2,10 +2,15 @@ package com.pingyu.infodiet.service.impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
 import com.pingyu.infodiet.mapper.UserProfileMapper;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
+import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
 import com.pingyu.infodiet.service.UserProfileService;
+import com.pingyu.infodiet.service.UserSourceSubscriptionService;
+import com.pingyu.infodiet.service.UserSubscriptionRuleService;
+import jakarta.annotation.Resource;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -17,6 +22,15 @@ import java.util.List;
  */
 @Service
 public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserProfile> implements UserProfileService {
+
+    @Resource
+    private UserKeywordSubscriptionService userKeywordSubscriptionService;
+
+    @Resource
+    private UserSubscriptionRuleService userSubscriptionRuleService;
+
+    @Resource
+    private UserSourceSubscriptionService userSourceSubscriptionService;
 
     /**
      * 创建用户
@@ -96,13 +110,44 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
     @Override
     public List<UserListItemVO> listUsers() {
         return this.list().stream()
-                .map(userProfile -> UserListItemVO.builder()
-                        .id(userProfile.getId())
-                        .nickname(userProfile.getNickname())
-                        .username(userProfile.getUsername())
-                        .role(userProfile.getRole())
-                        .status(userProfile.getStatus())
-                        .build())
+                .map(this::toUserListItem)
                 .toList();
+    }
+
+    /**
+     * 查询用户列表项
+     */
+    @Override
+    public UserListItemVO getUserListItemById(Long userId) {
+        UserProfile userProfile = this.getById(userId);
+        if (userProfile == null) {
+            return null;
+        }
+        return toUserListItem(userProfile);
+    }
+
+    /**
+     * 查询管理区用户订阅详情
+     */
+    @Override
+    public AdminUserSubscriptionVO getAdminUserSubscription(Long userId) {
+        return AdminUserSubscriptionVO.builder()
+                .user(getUserListItemById(userId))
+                .keywords(userKeywordSubscriptionService.listKeywordsByUserId(userId))
+                .rules(userSubscriptionRuleService.listEnabledRulesByUserId(userId))
+                .sources(userSourceSubscriptionService.listEnabledSourceSubscriptions().stream()
+                        .filter(item -> userId.equals(item.getUserId()))
+                        .toList())
+                .build();
+    }
+
+    protected UserListItemVO toUserListItem(UserProfile userProfile) {
+        return UserListItemVO.builder()
+                .id(userProfile.getId())
+                .nickname(userProfile.getNickname())
+                .username(userProfile.getUsername())
+                .role(userProfile.getRole())
+                .status(userProfile.getStatus())
+                .build();
     }
 }

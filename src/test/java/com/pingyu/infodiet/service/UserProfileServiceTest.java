@@ -1,5 +1,6 @@
 package com.pingyu.infodiet.service;
 
+import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.impl.UserProfileServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -170,9 +171,56 @@ class UserProfileServiceTest {
         assertEquals("admin", users.getFirst().getRole());
     }
 
+    @Test
+    void getUserListItemByIdShouldReturnLightweightUser() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        service.items.add(UserProfile.builder()
+                .id(2L)
+                .nickname("user-2")
+                .username("user-2")
+                .role("user")
+                .status(1)
+                .build());
+
+        var result = service.getUserListItemById(2L);
+
+        assertEquals("user-2", result.getUsername());
+        assertEquals("user", result.getRole());
+    }
+
+    @Test
+    void getAdminUserSubscriptionShouldAssembleSubscriptionData() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        service.items.add(UserProfile.builder()
+                .id(3L)
+                .nickname("user-3")
+                .username("user-3")
+                .role("user")
+                .status(1)
+                .build());
+        service.keywordSubscriptionService = userId -> List.of("agent", "ai");
+        service.subscriptionRuleService = userId -> List.of(
+                com.pingyu.infodiet.model.entity.UserSubscriptionRule.builder().id(1L).ruleType("author").ruleValue("openai").build()
+        );
+        service.sourceSubscriptionService = () -> List.of(
+                com.pingyu.infodiet.model.entity.UserSourceSubscription.builder().id(1L).userId(3L).platform("github").sourceType("author").sourceValue("openai").build(),
+                com.pingyu.infodiet.model.entity.UserSourceSubscription.builder().id(2L).userId(4L).platform("youtube").sourceType("channel").sourceValue("UC100").build()
+        );
+
+        AdminUserSubscriptionVO result = service.getAdminUserSubscription(3L);
+
+        assertEquals("user-3", result.getUser().getUsername());
+        assertEquals(2, result.getKeywords().size());
+        assertEquals(1, result.getRules().size());
+        assertEquals(1, result.getSources().size());
+    }
+
     private static class InMemoryUserProfileService extends UserProfileServiceImpl {
 
         private final List<UserProfile> items = new ArrayList<>();
+        private KeywordLookup keywordSubscriptionService = userId -> List.of();
+        private RuleLookup subscriptionRuleService = userId -> List.of();
+        private SourceLookup sourceSubscriptionService = List::of;
 
         @Override
         public boolean save(UserProfile entity) {
@@ -235,5 +283,32 @@ class UserProfileServiceTest {
         public java.util.List<UserProfile> list() {
             return items;
         }
+
+        @Override
+        public AdminUserSubscriptionVO getAdminUserSubscription(Long userId) {
+            return AdminUserSubscriptionVO.builder()
+                    .user(getUserListItemById(userId))
+                    .keywords(keywordSubscriptionService.listKeywords(userId))
+                    .rules(subscriptionRuleService.listRules(userId))
+                    .sources(sourceSubscriptionService.listSources().stream()
+                            .filter(item -> userId.equals(item.getUserId()))
+                            .toList())
+                    .build();
+        }
+    }
+
+    @FunctionalInterface
+    private interface KeywordLookup {
+        List<String> listKeywords(Long userId);
+    }
+
+    @FunctionalInterface
+    private interface RuleLookup {
+        List<com.pingyu.infodiet.model.entity.UserSubscriptionRule> listRules(Long userId);
+    }
+
+    @FunctionalInterface
+    private interface SourceLookup {
+        List<com.pingyu.infodiet.model.entity.UserSourceSubscription> listSources();
     }
 }

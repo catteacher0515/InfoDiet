@@ -5,6 +5,7 @@ import com.pingyu.infodiet.common.ResultUtils;
 import com.pingyu.infodiet.exception.BusinessException;
 import com.pingyu.infodiet.exception.ErrorCode;
 import com.pingyu.infodiet.model.auth.LoginUserContext;
+import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserProfileService;
@@ -70,5 +71,16 @@ public class UserProfileController {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         return ResultUtils.success(userProfileService.listUsers());
+    }
+
+    /**
+     * 查询管理区用户订阅详情
+     */
+    @GetMapping("/admin/subscription/{userId}")
+    public BaseResponse<AdminUserSubscriptionVO> getAdminUserSubscription(@PathVariable Long userId) {
+        if (!"admin".equals(LoginUserContext.getRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        return ResultUtils.success(userProfileService.getAdminUserSubscription(userId));
     }
 }

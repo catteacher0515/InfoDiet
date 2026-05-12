@@ -4,6 +4,7 @@ import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.common.ResultUtils;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
 import jakarta.annotation.Resource;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,5 +33,13 @@ public class InfoDietScheduleController {
     @PostMapping("/youtube/source/daily/run")
     public BaseResponse<InfoDietScheduleService.YoutubeSourceScheduleResult> runDailyYoutubeSourcePushFlow() {
         return ResultUtils.success(infoDietScheduleService.runDailyYoutubeSourcePushFlow());
+    }
+
+    /**
+     * 按任务类型重跑
+     */
+    @PostMapping("/rerun")
+    public BaseResponse<Object> rerunTask(@RequestParam String taskType) {
+        return ResultUtils.success(infoDietScheduleService.rerunTask(taskType));
     }
 }

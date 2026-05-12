@@ -25,6 +25,11 @@ public interface InfoDietScheduleService {
      */
     YoutubeSourceScheduleResult runDailyYoutubeSourcePushFlow();
 
+    /**
+     * 按任务类型重跑
+     */
+    Object rerunTask(String taskType);
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

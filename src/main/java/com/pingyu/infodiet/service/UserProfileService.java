@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
+import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 
@@ -35,4 +36,14 @@ public interface UserProfileService extends IService<UserProfile> {
      * 查询用户列表
      */
     List<UserListItemVO> listUsers();
+
+    /**
+     * 查询用户列表项
+     */
+    UserListItemVO getUserListItemById(Long userId);
+
+    /**
+     * 查询管理区用户订阅详情
+     */
+    AdminUserSubscriptionVO getAdminUserSubscription(Long userId);
 }

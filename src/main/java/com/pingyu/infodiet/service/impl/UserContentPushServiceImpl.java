@@ -5,9 +5,12 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.UserContentPushMapper;
+import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
+import com.pingyu.infodiet.service.AlertRecordService;
+import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.SubscriptionMatchService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import com.pingyu.infodiet.service.UserProfileService;
@@ -34,6 +37,12 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
 
     @Resource
     private UserProfileService userProfileService;
+
+    @Resource
+    private ContentItemService contentItemService;
+
+    @Resource
+    private AlertRecordService alertRecordService;
 
     /**
      * 生成待推送记录
@@ -262,6 +271,23 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
             }
         }
         return new BatchRetryResult(pushIdList.size(), successCount, pushIdList.size() - successCount);
+    }
+
+    /**
+     * 查询失败推送联动视图
+     */
+    @Override
+    public FailedPushOverviewVO getFailedPushOverview(Long pushId) {
+        UserContentPush push = this.getById(pushId);
+        if (push == null) {
+            return null;
+        }
+        ContentItem contentItem = push.getContentItemId() == null ? null : contentItemService.getById(push.getContentItemId());
+        return FailedPushOverviewVO.builder()
+                .push(push)
+                .contentItem(contentItem)
+                .alertRecord(alertRecordService.getBySource("user_content_push", pushId))
+                .build();
     }
 
     /**

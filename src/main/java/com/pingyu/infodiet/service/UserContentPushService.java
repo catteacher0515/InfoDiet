@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
+import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -62,6 +63,11 @@ public interface UserContentPushService extends IService<UserContentPush> {
      * 批量重试失败推送
      */
     BatchRetryResult retryFailedPushes(List<Long> pushIdList);
+
+    /**
+     * 查询失败推送联动视图
+     */
+    FailedPushOverviewVO getFailedPushOverview(Long pushId);
 
     @Data
     @NoArgsConstructor

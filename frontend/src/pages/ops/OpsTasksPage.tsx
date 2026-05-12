@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchRecentTasks, runAllSourceCrawl, runGithubDailyFlow, runYoutubeSourceDailyFlow } from '../../api/ops'
+import { fetchRecentTasks, rerunTask, runAllSourceCrawl, runGithubDailyFlow, runYoutubeSourceDailyFlow } from '../../api/ops'
 import { DataTable } from '../../components/DataTable'
 import type { CrawlTaskLogItem } from '../../types/ops'
 
@@ -41,6 +41,12 @@ export function OpsTasksPage() {
     await loadTasks()
   }
 
+  async function handleRerun(taskType: string) {
+    const response = await rerunTask(taskType)
+    setMessage(response.code === 0 ? `任务 ${taskType} 已重跑` : response.message || '任务重跑失败')
+    await loadTasks()
+  }
+
   return (
     <section className="page-section">
       <div className="page-heading">
@@ -76,6 +82,15 @@ export function OpsTasksPage() {
             { key: 'durationMs', title: '耗时(ms)', render: (item) => item.durationMs ?? '--' },
             { key: 'startTime', title: '开始时间', render: (item) => formatDateTime(item.startTime) },
             { key: 'errorMessage', title: '错误信息', render: (item) => item.errorMessage || '无' },
+            {
+              key: 'action',
+              title: '操作',
+              render: (item) => (
+                <button className="ghost-button table-button" type="button" onClick={() => handleRerun(item.taskType)}>
+                  重跑
+                </button>
+              ),
+            },
           ]}
           data={tasks}
         />

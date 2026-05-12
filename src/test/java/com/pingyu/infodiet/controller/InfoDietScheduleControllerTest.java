@@ -57,4 +57,18 @@ class InfoDietScheduleControllerTest {
         assertEquals(3, response.getData().getEnqueuedCount());
         assertEquals(0, response.getData().getEnqueueSkippedCount());
     }
+
+    @Test
+    void rerunTaskShouldReturnSuccess() {
+        InfoDietScheduleService infoDietScheduleService = Mockito.mock(InfoDietScheduleService.class);
+        when(infoDietScheduleService.rerunTask("github_daily_flow"))
+                .thenReturn(new InfoDietScheduleService.ScheduleResult(1, 1, 0, 1, 0, 1, 0));
+
+        InfoDietScheduleController controller = new InfoDietScheduleController();
+        ReflectionTestUtils.setField(controller, "infoDietScheduleService", infoDietScheduleService);
+
+        BaseResponse<Object> response = controller.rerunTask("github_daily_flow");
+
+        assertEquals(0, response.getCode());
+    }
 }

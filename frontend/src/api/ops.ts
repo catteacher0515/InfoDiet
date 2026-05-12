@@ -1,6 +1,7 @@
 import http from './http'
 import type { BaseResponse } from '../types/auth'
 import type { AlertRecordItem, CrawlTaskLogItem, PushFailureItem } from '../types/ops'
+import type { FailedPushOverview } from '../types/ops-detail'
 
 export async function fetchRecentTasks() {
   const { data } = await http.get<BaseResponse<CrawlTaskLogItem[]>>('/crawl-task-log/recent?limit=10')
@@ -47,8 +48,18 @@ export async function runAllSourceCrawl() {
   return data
 }
 
+export async function rerunTask(taskType: string) {
+  const { data } = await http.post<BaseResponse<Record<string, unknown>>>(`/schedule/github/rerun?taskType=${taskType}`)
+  return data
+}
+
 export async function retryFailedPush(pushId: number) {
   const { data } = await http.post<BaseResponse<boolean>>(`/user-content-push/retry?pushId=${pushId}`)
+  return data
+}
+
+export async function fetchFailedPushOverview(pushId: number) {
+  const { data } = await http.get<BaseResponse<FailedPushOverview>>(`/user-content-push/failed/overview?pushId=${pushId}`)
   return data
 }
 

@@ -13,6 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -180,5 +181,24 @@ class InfoDietScheduleServiceTest {
                 Mockito.eq("调度任务执行失败"),
                 Mockito.contains("GitHub 抓取失败")
         );
+    }
+
+    @Test
+    void rerunTaskShouldDispatchByTaskType() {
+        InfoDietScheduleServiceImpl service = Mockito.spy(new InfoDietScheduleServiceImpl());
+        Mockito.doReturn(new InfoDietScheduleService.ScheduleResult(1, 1, 0, 1, 0, 1, 0))
+                .when(service).runDailyGithubFlow();
+
+        Object result = service.rerunTask("github_daily_flow");
+
+        assertNotNull(result);
+        verify(service).runDailyGithubFlow();
+    }
+
+    @Test
+    void rerunTaskShouldThrowWhenTaskTypeUnsupported() {
+        InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
+
+        assertThrows(IllegalArgumentException.class, () -> service.rerunTask("unknown_task"));
     }
 }

@@ -105,6 +105,19 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
     }
 
     /**
+     * 查询来源关联告警
+     */
+    @Override
+    public AlertRecord getBySource(String sourceType, Long sourceId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("sourceType", sourceType)
+                .eq("sourceId", sourceId)
+                .orderBy("lastOccurTime", false)
+                .limit(1);
+        return this.getOne(queryWrapper);
+    }
+
+    /**
      * 查询已存在告警
      */
     protected AlertRecord getExistingAlert(String alertType, String sourceType, Long sourceId) {

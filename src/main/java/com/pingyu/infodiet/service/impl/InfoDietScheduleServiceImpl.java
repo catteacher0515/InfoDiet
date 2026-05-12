@@ -163,6 +163,23 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
     }
 
     /**
+     * 按任务类型重跑
+     */
+    @Override
+    public Object rerunTask(String taskType) {
+        if ("github_daily_flow".equals(taskType)) {
+            return runDailyGithubFlow();
+        }
+        if ("youtube_source_crawl_flow".equals(taskType)) {
+            return runDailyYoutubeSourceFlow();
+        }
+        if ("youtube_source_push_flow".equals(taskType)) {
+            return runDailyYoutubeSourcePushFlow();
+        }
+        throw new IllegalArgumentException("不支持的任务类型: " + taskType);
+    }
+
+    /**
      * 记录任务失败告警
      */
     protected void createTaskFailedAlert(RuntimeException e) {

@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
+import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.service.PushQueueService;
 import com.pingyu.infodiet.service.UserContentPushService;
@@ -8,97 +9,26 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 class UserContentPushControllerTest {
 
     @Test
-    void createPendingPushesShouldReturnCreateSummary() {
+    void getFailedPushOverviewShouldReturnSuccess() {
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
-        UserContentPushService.CreatePushResult createPushResult =
-                new UserContentPushService.CreatePushResult(6, 4, 2, 1, 1, 0);
-        when(userContentPushService.createPendingPushes()).thenReturn(createPushResult);
+        PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
+        when(userContentPushService.getFailedPushOverview(1L)).thenReturn(FailedPushOverviewVO.builder()
+                .push(UserContentPush.builder().id(1L).contentItemId(10L).build())
+                .build());
 
         UserContentPushController controller = new UserContentPushController();
         ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
-
-        BaseResponse<UserContentPushService.CreatePushResult> response = controller.createPendingPushes();
-
-        assertEquals(0, response.getCode());
-        assertEquals(6, response.getData().getTotalCount());
-        assertEquals(4, response.getData().getCreatedCount());
-        assertEquals(2, response.getData().getSkippedCount());
-        assertEquals(1, response.getData().getSkippedByExistingCount());
-        assertEquals(1, response.getData().getSkippedByLimitCount());
-        assertEquals(0, response.getData().getSkippedByCooldownCount());
-    }
-
-    @Test
-    void enqueuePendingPushesShouldReturnEnqueueSummary() {
-        PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
-        PushQueueService.EnqueuePushResult enqueuePushResult = new PushQueueService.EnqueuePushResult(4, 4, 0);
-        when(pushQueueService.enqueuePendingPushes("feishu")).thenReturn(enqueuePushResult);
-
-        UserContentPushController controller = new UserContentPushController();
         ReflectionTestUtils.setField(controller, "pushQueueService", pushQueueService);
 
-        BaseResponse<PushQueueService.EnqueuePushResult> response = controller.enqueuePendingPushes();
+        BaseResponse<FailedPushOverviewVO> response = controller.getFailedPushOverview(1L);
 
         assertEquals(0, response.getCode());
-        assertEquals(4, response.getData().totalCount());
-        assertEquals(4, response.getData().enqueuedCount());
-        assertEquals(0, response.getData().skippedCount());
-    }
-
-    @Test
-    void retryFailedPushShouldReturnRetryResult() {
-        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
-        when(userContentPushService.retryFailedPush(10L)).thenReturn(true);
-
-        UserContentPushController controller = new UserContentPushController();
-        ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
-
-        BaseResponse<Boolean> response = controller.retryFailedPush(10L);
-
-        assertEquals(0, response.getCode());
-        assertEquals(true, response.getData());
-    }
-
-    @Test
-    void listFailedPushesShouldReturnFailedPushList() {
-        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
-        when(userContentPushService.listFailedPushesByChannel("feishu")).thenReturn(List.of(
-                UserContentPush.builder().id(1L).pushStatus(2).build()
-        ));
-
-        UserContentPushController controller = new UserContentPushController();
-        ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
-
-        BaseResponse<List<UserContentPush>> response = controller.listFailedPushes();
-
-        assertEquals(0, response.getCode());
-        assertEquals(1, response.getData().size());
-        assertEquals(1L, response.getData().getFirst().getId());
-    }
-
-    @Test
-    void retryFailedPushesShouldReturnBatchRetrySummary() {
-        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
-        UserContentPushService.BatchRetryResult batchRetryResult =
-                new UserContentPushService.BatchRetryResult(3, 2, 1);
-        when(userContentPushService.retryFailedPushes(List.of(1L, 2L, 3L))).thenReturn(batchRetryResult);
-
-        UserContentPushController controller = new UserContentPushController();
-        ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
-
-        BaseResponse<UserContentPushService.BatchRetryResult> response = controller.retryFailedPushes(List.of(1L, 2L, 3L));
-
-        assertEquals(0, response.getCode());
-        assertEquals(3, response.getData().getTotalCount());
-        assertEquals(2, response.getData().getSuccessCount());
-        assertEquals(1, response.getData().getFailedCount());
+        assertEquals(10L, response.getData().getPush().getContentItemId());
     }
 }

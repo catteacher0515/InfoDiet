@@ -36,4 +36,9 @@ public interface AlertRecordService extends IService<AlertRecord> {
      * 查询待处理告警
      */
     List<AlertRecord> listPendingAlerts();
+
+    /**
+     * 查询来源关联告警
+     */
+    AlertRecord getBySource(String sourceType, Long sourceId);
 }

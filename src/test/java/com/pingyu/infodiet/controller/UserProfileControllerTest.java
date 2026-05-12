@@ -4,6 +4,7 @@ import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.exception.BusinessException;
 import com.pingyu.infodiet.model.auth.LoginUser;
 import com.pingyu.infodiet.model.auth.LoginUserContext;
+import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserProfileService;
@@ -114,6 +115,26 @@ class UserProfileControllerTest {
         LoginUserContext.set(LoginUser.builder().userId(2L).username("user").role("user").build());
 
         assertThrows(BusinessException.class, controller::listUsers);
+        LoginUserContext.clear();
+    }
+
+    @Test
+    void getAdminUserSubscriptionShouldReturnSubscriptionDetail() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        when(userProfileService.getAdminUserSubscription(1L)).thenReturn(AdminUserSubscriptionVO.builder()
+                .user(UserListItemVO.builder().id(1L).nickname("pingyu").build())
+                .keywords(List.of("ai"))
+                .build());
+
+        UserProfileController controller = new UserProfileController();
+        ReflectionTestUtils.setField(controller, "userProfileService", userProfileService);
+        LoginUserContext.set(LoginUser.builder().userId(1L).username("admin").role("admin").build());
+
+        BaseResponse<AdminUserSubscriptionVO> response = controller.getAdminUserSubscription(1L);
+
+        assertEquals(0, response.getCode());
+        assertEquals("pingyu", response.getData().getUser().getNickname());
+        assertEquals(1, response.getData().getKeywords().size());
         LoginUserContext.clear();
     }
 }

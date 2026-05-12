@@ -2,6 +2,7 @@ package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.common.ResultUtils;
+import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.service.PushQueueService;
 import com.pingyu.infodiet.service.UserContentPushService;
@@ -66,5 +67,13 @@ public class UserContentPushController {
     @PostMapping("/failed/retry")
     public BaseResponse<UserContentPushService.BatchRetryResult> retryFailedPushes(@RequestBody List<Long> pushIdList) {
         return ResultUtils.success(userContentPushService.retryFailedPushes(pushIdList));
+    }
+
+    /**
+     * 查询失败推送联动视图
+     */
+    @GetMapping("/failed/overview")
+    public BaseResponse<FailedPushOverviewVO> getFailedPushOverview(@RequestParam Long pushId) {
+        return ResultUtils.success(userContentPushService.getFailedPushOverview(pushId));
     }
 }
