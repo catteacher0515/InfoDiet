@@ -6,6 +6,7 @@ import com.pingyu.infodiet.service.PushQueueService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,5 +37,13 @@ public class UserContentPushController {
     @PostMapping("/enqueue")
     public BaseResponse<PushQueueService.EnqueuePushResult> enqueuePendingPushes() {
         return ResultUtils.success(pushQueueService.enqueuePendingPushes("feishu"));
+    }
+
+    /**
+     * 重试失败推送
+     */
+    @PostMapping("/retry")
+    public BaseResponse<Boolean> retryFailedPush(@RequestParam Long pushId) {
+        return ResultUtils.success(userContentPushService.retryFailedPush(pushId));
     }
 }

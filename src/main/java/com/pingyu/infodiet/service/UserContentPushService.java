@@ -43,6 +43,11 @@ public interface UserContentPushService extends IService<UserContentPush> {
      */
     boolean markPushFailed(Long pushId, String failReason);
 
+    /**
+     * 重试失败推送
+     */
+    boolean retryFailedPush(Long pushId);
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

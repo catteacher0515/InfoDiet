@@ -205,6 +205,26 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
     }
 
     /**
+     * 重试失败推送
+     */
+    @Override
+    public boolean retryFailedPush(Long pushId) {
+        UserContentPush userContentPush = this.getById(pushId);
+        if (userContentPush == null || userContentPush.getPushStatus() == null || userContentPush.getPushStatus() != 2) {
+            return false;
+        }
+        return this.updateChain()
+                .set("pushStatus", 0)
+                .set("queueStatus", 0)
+                .set("retryCount", 0)
+                .set("failReason", null)
+                .set("nextRetryTime", null)
+                .where("id = ?", pushId)
+                .and("pushStatus = ?", 2)
+                .update();
+    }
+
+    /**
      * 判断推送记录是否已存在
      */
     protected boolean existsByUserIdAndContentItemId(Long userId, Long contentItemId) {

@@ -385,6 +385,32 @@ class UserContentPushServiceTest {
         assertNull(updated.getNextRetryTime());
     }
 
+    @Test
+    void retryFailedPushShouldResetFailedPushRecord() {
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        service.fixedNow = LocalDateTime.of(2026, 5, 12, 10, 0);
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .pushChannel("feishu")
+                .pushStatus(2)
+                .queueStatus(3)
+                .retryCount(3)
+                .maxRetryCount(3)
+                .failReason("最终失败")
+                .nextRetryTime(LocalDateTime.of(2026, 5, 12, 9, 0))
+                .build());
+
+        boolean result = service.retryFailedPush(1L);
+
+        assertTrue(result);
+        UserContentPush updated = service.findById(1L);
+        assertEquals(0, updated.getPushStatus());
+        assertEquals(0, updated.getQueueStatus());
+        assertEquals(0, updated.getRetryCount());
+        assertNull(updated.getFailReason());
+        assertNull(updated.getNextRetryTime());
+    }
+
     private static class InMemoryUserContentPushService extends UserContentPushServiceImpl {
 
         private final List<UserContentPush> savedItems = new ArrayList<>();
@@ -476,6 +502,20 @@ class UserContentPushServiceTest {
                 existing.setQueueStatus(0);
                 existing.setNextRetryTime(fixedNow.plusMinutes(5));
             }
+            return true;
+        }
+
+        @Override
+        public boolean retryFailedPush(Long pushId) {
+            UserContentPush existing = findById(pushId);
+            if (existing == null || existing.getPushStatus() == null || existing.getPushStatus() != 2) {
+                return false;
+            }
+            existing.setPushStatus(0);
+            existing.setQueueStatus(0);
+            existing.setRetryCount(0);
+            existing.setFailReason(null);
+            existing.setNextRetryTime(null);
             return true;
         }
 

@@ -49,4 +49,18 @@ class UserContentPushControllerTest {
         assertEquals(4, response.getData().enqueuedCount());
         assertEquals(0, response.getData().skippedCount());
     }
+
+    @Test
+    void retryFailedPushShouldReturnRetryResult() {
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        when(userContentPushService.retryFailedPush(10L)).thenReturn(true);
+
+        UserContentPushController controller = new UserContentPushController();
+        ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
+
+        BaseResponse<Boolean> response = controller.retryFailedPush(10L);
+
+        assertEquals(0, response.getCode());
+        assertEquals(true, response.getData());
+    }
 }
