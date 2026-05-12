@@ -17,6 +17,8 @@ import java.util.List;
 public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, AlertRecord>
         implements AlertRecordService {
 
+    private static final int FAIL_REASON_MAX_LENGTH = 512;
+
     /**
      * 创建或更新告警记录
      */
@@ -71,12 +73,12 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
      */
     @Override
     public boolean markAlertSent(Long alertId) {
-        AlertRecord updateRecord = new AlertRecord();
-        updateRecord.setId(alertId);
-        updateRecord.setAlertStatus(1);
-        updateRecord.setSendTime(now());
-        updateRecord.setFailReason(null);
-        return this.updateById(updateRecord);
+        return this.updateChain()
+                .set("alertStatus", 1)
+                .set("sendTime", now())
+                .set("failReason", null)
+                .where("id = ?", alertId)
+                .update();
     }
 
     /**
@@ -84,11 +86,11 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
      */
     @Override
     public boolean markAlertSendFailed(Long alertId, String failReason) {
-        AlertRecord updateRecord = new AlertRecord();
-        updateRecord.setId(alertId);
-        updateRecord.setAlertStatus(2);
-        updateRecord.setFailReason(failReason);
-        return this.updateById(updateRecord);
+        return this.updateChain()
+                .set("alertStatus", 2)
+                .set("failReason", trimFailReason(failReason))
+                .where("id = ?", alertId)
+                .update();
     }
 
     /**
@@ -118,5 +120,18 @@ public class AlertRecordServiceImpl extends ServiceImpl<AlertRecordMapper, Alert
      */
     protected LocalDateTime now() {
         return LocalDateTime.now();
+    }
+
+    /**
+     * 截断失败原因，避免超出字段长度
+     */
+    protected String trimFailReason(String failReason) {
+        if (failReason == null) {
+            return null;
+        }
+        if (failReason.length() <= FAIL_REASON_MAX_LENGTH) {
+            return failReason;
+        }
+        return failReason.substring(0, FAIL_REASON_MAX_LENGTH);
     }
 }

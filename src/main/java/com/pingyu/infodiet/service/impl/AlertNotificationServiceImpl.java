@@ -62,10 +62,12 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
     @Override
     public boolean sendAlertToFeishu(Long alertId) {
         if (alertId == null) {
+            log.warn("飞书告警发送跳过，alertId 为空");
             return false;
         }
         AlertRecord alertRecord = alertRecordService.getById(alertId);
         if (alertRecord == null) {
+            log.warn("飞书告警发送跳过，告警记录不存在，alertId={}", alertId);
             return false;
         }
         List<UserProfile> enabledUsers = userProfileService.listEnabledUsers();
@@ -73,8 +75,11 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
                 .filter(item -> StrUtil.equalsIgnoreCase(item.getPushChannel(), "feishu"))
                 .filter(item -> StrUtil.isNotBlank(item.getFeishuUserId()))
                 .toList();
+        log.info("飞书告警发送开始，alertId={}, enabledUserCount={}, feishuUserCount={}",
+                alertId, enabledUsers.size(), feishuUsers.size());
         if (CollUtil.isEmpty(feishuUsers)) {
             alertRecordService.markAlertSendFailed(alertId, "未找到可用的飞书告警接收人");
+            log.warn("飞书告警发送失败，未找到可用的飞书接收人，alertId={}", alertId);
             return false;
         }
         try {
@@ -96,10 +101,13 @@ public class AlertNotificationServiceImpl implements AlertNotificationService {
                             ? "飞书告警发送失败，响应为空"
                             : "code=" + resp.getCode() + ",msg=" + StrUtil.blankToDefault(resp.getMsg(), "");
                     alertRecordService.markAlertSendFailed(alertId, failReason);
+                    log.warn("飞书告警发送失败，alertId={}, feishuUserId={}, failReason={}",
+                            alertId, feishuUser.getFeishuUserId(), failReason);
                     return false;
                 }
             }
             alertRecordService.markAlertSent(alertId);
+            log.info("飞书告警发送成功，alertId={}", alertId);
             return true;
         } catch (Exception e) {
             log.error("飞书告警发送异常，alertId={}", alertId, e);

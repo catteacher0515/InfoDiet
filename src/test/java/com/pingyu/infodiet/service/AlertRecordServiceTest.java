@@ -102,6 +102,22 @@ class AlertRecordServiceTest {
         assertEquals("飞书告警发送失败", service.savedItems.getFirst().getFailReason());
     }
 
+    @Test
+    void markAlertSendFailedShouldTrimTooLongFailReason() {
+        InMemoryAlertRecordService service = new InMemoryAlertRecordService();
+        service.savedItems.add(AlertRecord.builder()
+                .id(1L)
+                .alertStatus(0)
+                .build());
+        String longFailReason = "x".repeat(600);
+
+        boolean result = service.markAlertSendFailed(1L, longFailReason);
+
+        assertTrue(result);
+        assertEquals(2, service.savedItems.getFirst().getAlertStatus());
+        assertEquals(512, service.savedItems.getFirst().getFailReason().length());
+    }
+
     private static class InMemoryAlertRecordService extends AlertRecordServiceImpl {
 
         private final List<AlertRecord> savedItems = new ArrayList<>();
@@ -127,6 +143,11 @@ class AlertRecordServiceTest {
 
         @Override
         public boolean updateById(AlertRecord entity) {
+            return updateById(entity, true);
+        }
+
+        @Override
+        public boolean updateById(AlertRecord entity, boolean ignoreNulls) {
             AlertRecord existing = savedItems.stream()
                     .filter(item -> item.getId().equals(entity.getId()))
                     .findFirst()
@@ -143,14 +164,49 @@ class AlertRecordServiceTest {
             if (entity.getAlertContent() != null) {
                 existing.setAlertContent(entity.getAlertContent());
             }
-            if (entity.getFailReason() != null || entity.getId() != null) {
+            if (!ignoreNulls || entity.getFailReason() != null) {
                 existing.setFailReason(entity.getFailReason());
             }
             if (entity.getLastOccurTime() != null) {
                 existing.setLastOccurTime(entity.getLastOccurTime());
             }
-            if (entity.getSendTime() != null || entity.getId() != null) {
+            if (!ignoreNulls || entity.getSendTime() != null) {
                 existing.setSendTime(entity.getSendTime());
+            }
+            return true;
+        }
+
+        @Override
+        public boolean markAlertSent(Long alertId) {
+            AlertRecord existing = savedItems.stream()
+                    .filter(item -> item.getId().equals(alertId))
+                    .findFirst()
+                    .orElse(null);
+            if (existing == null) {
+                return false;
+            }
+            existing.setAlertStatus(1);
+            existing.setSendTime(fixedNow);
+            existing.setFailReason(null);
+            return true;
+        }
+
+        @Override
+        public boolean markAlertSendFailed(Long alertId, String failReason) {
+            AlertRecord existing = savedItems.stream()
+                    .filter(item -> item.getId().equals(alertId))
+                    .findFirst()
+                    .orElse(null);
+            if (existing == null) {
+                return false;
+            }
+            existing.setAlertStatus(2);
+            if (failReason == null) {
+                existing.setFailReason(null);
+            } else if (failReason.length() <= 512) {
+                existing.setFailReason(failReason);
+            } else {
+                existing.setFailReason(failReason.substring(0, 512));
             }
             return true;
         }
