@@ -36,6 +36,9 @@ create table if not exists user_profile
 (
     id             bigint auto_increment comment '主键' primary key,
     nickname       varchar(128)                           not null comment '用户昵称',
+    username       varchar(64)                            not null comment '登录账号',
+    password       varchar(255)                           not null comment '登录密码',
+    role           varchar(32)                            not null default 'user' comment '角色',
     feishuUserId   varchar(128)                           null comment '飞书用户 ID',
     pushChannel    varchar(32)                            not null default 'feishu' comment '推送渠道',
     dailyPushLimit int                                    not null default 10 comment '每日推送上限',
@@ -44,6 +47,7 @@ create table if not exists user_profile
     createTime     datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
     updateTime     datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete       tinyint  default 0                     not null comment '是否删除',
+    unique key uk_username (username),
     unique key uk_feishuUserId (feishuUserId),
     index idx_status (status)
 ) comment '用户信息表' collate = utf8mb4_unicode_ci;

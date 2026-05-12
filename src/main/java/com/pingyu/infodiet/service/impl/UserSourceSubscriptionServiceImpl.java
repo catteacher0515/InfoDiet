@@ -39,6 +39,21 @@ public class UserSourceSubscriptionServiceImpl
     }
 
     /**
+     * 删除订阅源
+     */
+    @Override
+    @CacheEvict(
+            cacheNames = {"enabledSourceSubscriptions", "matchEnabledUsersWithDetails", "unifiedContentItems"},
+            allEntries = true
+    )
+    public boolean removeSourceSubscription(Long userId, Long sourceSubscriptionId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("id", sourceSubscriptionId)
+                .eq("userId", userId);
+        return this.remove(queryWrapper);
+    }
+
+    /**
      * 查询启用订阅源列表
      */
     @Override

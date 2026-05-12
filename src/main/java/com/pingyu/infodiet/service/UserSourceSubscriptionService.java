@@ -16,6 +16,11 @@ public interface UserSourceSubscriptionService extends IService<UserSourceSubscr
     boolean addSourceSubscription(UserSourceSubscription userSourceSubscription);
 
     /**
+     * 删除订阅源
+     */
+    boolean removeSourceSubscription(Long userId, Long sourceSubscriptionId);
+
+    /**
      * 查询启用订阅源列表
      */
     List<UserSourceSubscription> listEnabledSourceSubscriptions();

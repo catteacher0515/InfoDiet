@@ -20,6 +20,9 @@ class UserProfileServiceTest {
         UserProfile userProfile = UserProfile.builder()
                 .id(1L)
                 .nickname("pingyu")
+                .username("pingyu")
+                .password("encoded")
+                .role("user")
                 .status(1)
                 .build();
 
@@ -47,6 +50,9 @@ class UserProfileServiceTest {
         UserProfile userProfile = UserProfile.builder()
                 .id(2L)
                 .nickname("strategy-user")
+                .username("strategy-user")
+                .password("encoded")
+                .role("user")
                 .dailyPushLimit(5)
                 .pushCooldownHours(6)
                 .status(1)
@@ -66,6 +72,9 @@ class UserProfileServiceTest {
         service.items.add(UserProfile.builder()
                 .id(1L)
                 .nickname("pingyu")
+                .username("pingyu")
+                .password("encoded")
+                .role("user")
                 .dailyPushLimit(3)
                 .pushCooldownHours(24)
                 .status(1)
@@ -79,6 +88,51 @@ class UserProfileServiceTest {
         assertEquals(true, updated);
         assertEquals(0, service.items.getFirst().getPushCooldownHours());
         assertEquals(3, service.items.getFirst().getDailyPushLimit());
+    }
+
+    @Test
+    void createUserShouldKeepAuthFields() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        UserProfile userProfile = UserProfile.builder()
+                .id(3L)
+                .nickname("admin-user")
+                .username("admin")
+                .password("hashed-password")
+                .role("admin")
+                .status(1)
+                .build();
+
+        Long userId = service.createUser(userProfile);
+
+        assertEquals(3L, userId);
+        assertEquals("admin", service.items.getFirst().getUsername());
+        assertEquals("hashed-password", service.items.getFirst().getPassword());
+        assertEquals("admin", service.items.getFirst().getRole());
+    }
+
+    @Test
+    void updateUserShouldSupportAuthFields() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        service.items.add(UserProfile.builder()
+                .id(4L)
+                .nickname("old-user")
+                .username("old-user")
+                .password("old-password")
+                .role("user")
+                .status(1)
+                .build());
+
+        boolean updated = service.updateUser(UserProfile.builder()
+                .id(4L)
+                .nickname("new-user")
+                .password("new-password")
+                .role("admin")
+                .build());
+
+        assertEquals(true, updated);
+        assertEquals("new-user", service.items.getFirst().getNickname());
+        assertEquals("new-password", service.items.getFirst().getPassword());
+        assertEquals("admin", service.items.getFirst().getRole());
     }
 
     @Test
@@ -96,6 +150,24 @@ class UserProfileServiceTest {
 
         assertEquals(true, cacheEvict.allEntries());
         assertEquals("enabledUsers", cacheEvict.cacheNames()[0]);
+    }
+
+    @Test
+    void listUsersShouldReturnProductFacingFields() {
+        InMemoryUserProfileService service = new InMemoryUserProfileService();
+        service.items.add(UserProfile.builder()
+                .id(1L)
+                .nickname("pingyu")
+                .username("pingyu")
+                .role("admin")
+                .status(1)
+                .build());
+
+        var users = service.listUsers();
+
+        assertEquals(1, users.size());
+        assertEquals("pingyu", users.getFirst().getUsername());
+        assertEquals("admin", users.getFirst().getRole());
     }
 
     private static class InMemoryUserProfileService extends UserProfileServiceImpl {
@@ -116,6 +188,15 @@ class UserProfileServiceTest {
                 }
                 if (entity.getNickname() != null) {
                     item.setNickname(entity.getNickname());
+                }
+                if (entity.getUsername() != null) {
+                    item.setUsername(entity.getUsername());
+                }
+                if (entity.getPassword() != null) {
+                    item.setPassword(entity.getPassword());
+                }
+                if (entity.getRole() != null) {
+                    item.setRole(entity.getRole());
                 }
                 if (entity.getFeishuUserId() != null) {
                     item.setFeishuUserId(entity.getFeishuUserId());
@@ -148,6 +229,11 @@ class UserProfileServiceTest {
         @Override
         public List<UserProfile> list(com.mybatisflex.core.query.QueryWrapper queryWrapper) {
             return items.stream().filter(item -> item.getStatus() != null && item.getStatus() == 1).toList();
+        }
+
+        @Override
+        public java.util.List<UserProfile> list() {
+            return items;
         }
     }
 }

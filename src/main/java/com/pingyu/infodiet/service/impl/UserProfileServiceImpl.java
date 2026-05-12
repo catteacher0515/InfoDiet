@@ -3,6 +3,7 @@ package com.pingyu.infodiet.service.impl;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.UserProfileMapper;
+import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserProfileService;
 import org.springframework.cache.annotation.CacheEvict;
@@ -43,6 +44,15 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
         if (userProfile.getNickname() != null) {
             existingUser.setNickname(userProfile.getNickname());
         }
+        if (userProfile.getUsername() != null) {
+            existingUser.setUsername(userProfile.getUsername());
+        }
+        if (userProfile.getPassword() != null) {
+            existingUser.setPassword(userProfile.getPassword());
+        }
+        if (userProfile.getRole() != null) {
+            existingUser.setRole(userProfile.getRole());
+        }
         if (userProfile.getFeishuUserId() != null) {
             existingUser.setFeishuUserId(userProfile.getFeishuUserId());
         }
@@ -78,5 +88,21 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("status", 1);
         return this.list(queryWrapper);
+    }
+
+    /**
+     * 查询用户列表
+     */
+    @Override
+    public List<UserListItemVO> listUsers() {
+        return this.list().stream()
+                .map(userProfile -> UserListItemVO.builder()
+                        .id(userProfile.getId())
+                        .nickname(userProfile.getNickname())
+                        .username(userProfile.getUsername())
+                        .role(userProfile.getRole())
+                        .status(userProfile.getStatus())
+                        .build())
+                .toList();
     }
 }

@@ -39,6 +39,21 @@ public class UserProfile implements Serializable {
     private String nickname;
 
     /**
+     * 登录账号
+     */
+    private String username;
+
+    /**
+     * 登录密码
+     */
+    private String password;
+
+    /**
+     * 角色
+     */
+    private String role;
+
+    /**
      * 飞书用户 ID
      */
     @Column("feishuUserId")

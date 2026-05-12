@@ -54,6 +54,11 @@ public interface UserContentPushService extends IService<UserContentPush> {
     List<UserContentPush> listFailedPushesByChannel(String pushChannel);
 
     /**
+     * 查询当前用户推送记录
+     */
+    List<UserContentPush> listPushesByUserId(Long userId);
+
+    /**
      * 批量重试失败推送
      */
     BatchRetryResult retryFailedPushes(List<Long> pushIdList);

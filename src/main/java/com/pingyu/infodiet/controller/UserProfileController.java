@@ -2,6 +2,10 @@ package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.common.ResultUtils;
+import com.pingyu.infodiet.exception.BusinessException;
+import com.pingyu.infodiet.exception.ErrorCode;
+import com.pingyu.infodiet.model.auth.LoginUserContext;
+import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserProfileService;
 import jakarta.annotation.Resource;
@@ -55,5 +59,16 @@ public class UserProfileController {
     @GetMapping("/list/enabled")
     public BaseResponse<List<UserProfile>> listEnabledUsers() {
         return ResultUtils.success(userProfileService.listEnabledUsers());
+    }
+
+    /**
+     * 查询用户列表
+     */
+    @GetMapping("/list")
+    public BaseResponse<List<UserListItemVO>> listUsers() {
+        if (!"admin".equals(LoginUserContext.getRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        return ResultUtils.success(userProfileService.listUsers());
     }
 }

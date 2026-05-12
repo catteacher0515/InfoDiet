@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
+import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 
 import java.util.List;
@@ -29,4 +30,9 @@ public interface UserProfileService extends IService<UserProfile> {
      * 查询启用用户
      */
     List<UserProfile> listEnabledUsers();
+
+    /**
+     * 查询用户列表
+     */
+    List<UserListItemVO> listUsers();
 }

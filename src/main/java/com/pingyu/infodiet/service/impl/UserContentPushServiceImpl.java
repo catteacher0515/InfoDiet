@@ -237,6 +237,17 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
     }
 
     /**
+     * 查询当前用户推送记录
+     */
+    @Override
+    public List<UserContentPush> listPushesByUserId(Long userId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("userId", userId)
+                .orderBy("createTime", false);
+        return this.list(queryWrapper);
+    }
+
+    /**
      * 批量重试失败推送
      */
     @Override
