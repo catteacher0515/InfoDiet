@@ -3,9 +3,9 @@ package com.pingyu.infodiet.service.impl;
 import com.pingyu.infodiet.config.InfoDietProperties;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.service.ContentItemService;
-import com.pingyu.infodiet.service.FeishuPushService;
 import com.pingyu.infodiet.service.GithubTrendingService;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
+import com.pingyu.infodiet.service.PushQueueService;
 import com.pingyu.infodiet.service.SourceSubscriptionCrawlService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import jakarta.annotation.Resource;
@@ -26,10 +26,10 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
     private ContentItemService contentItemService;
 
     @Resource
-    private FeishuPushService feishuPushService;
+    private UserContentPushService userContentPushService;
 
     @Resource
-    private UserContentPushService userContentPushService;
+    private PushQueueService pushQueueService;
 
     @Resource
     private InfoDietProperties infoDietProperties;
@@ -47,15 +47,15 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         ContentItemService.KeywordFilterResult filterResult = contentItemService
                 .filterByKeywords(infoDietProperties.getKeywords());
         userContentPushService.createPendingPushes();
-        FeishuPushService.PushResult pushResult = feishuPushService.pushUserContentItemsToFeishu();
+        PushQueueService.EnqueuePushResult enqueuePushResult = pushQueueService.enqueuePendingPushes("feishu");
         return new ScheduleResult(
                 dtoList.size(),
                 saveResult.getSavedCount(),
                 saveResult.getSkippedCount(),
                 filterResult.getMatchedCount(),
                 filterResult.getUnmatchedCount(),
-                pushResult.getSuccessCount(),
-                pushResult.getFailedCount()
+                enqueuePushResult.enqueuedCount(),
+                enqueuePushResult.skippedCount()
         );
     }
 
@@ -75,7 +75,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         SourceSubscriptionCrawlService.CrawlResult crawlResult = sourceSubscriptionCrawlService
                 .crawlAllSourceSubscriptions();
         UserContentPushService.CreatePushResult createPushResult = userContentPushService.createPendingPushes();
-        FeishuPushService.PushResult pushResult = feishuPushService.pushUserContentItemsToFeishu();
+        PushQueueService.EnqueuePushResult enqueuePushResult = pushQueueService.enqueuePendingPushes("feishu");
         return new YoutubeSourceScheduleResult(
                 crawlResult.getSubscriptionCount(),
                 crawlResult.getCrawlCount(),
@@ -83,8 +83,8 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
                 crawlResult.getSkippedCount(),
                 createPushResult.getCreatedCount(),
                 createPushResult.getSkippedCount(),
-                pushResult.getSuccessCount(),
-                pushResult.getFailedCount()
+                enqueuePushResult.enqueuedCount(),
+                enqueuePushResult.skippedCount()
         );
     }
 }

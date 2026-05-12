@@ -56,14 +56,14 @@ public interface InfoDietScheduleService {
         private int unmatchedCount;
 
         /**
-         * 推送成功数量
+         * 成功入队数量
          */
-        private int pushSuccessCount;
+        private int enqueuedCount;
 
         /**
-         * 推送失败数量
+         * 入队跳过数量
          */
-        private int pushFailedCount;
+        private int enqueueSkippedCount;
     }
 
     @Data
@@ -102,13 +102,13 @@ public interface InfoDietScheduleService {
         private int pendingPushSkippedCount;
 
         /**
-         * 本次推送成功数量
+         * 本次成功入队数量
          */
-        private int pushSuccessCount;
+        private int enqueuedCount;
 
         /**
-         * 本次推送失败数量
+         * 本次入队跳过数量
          */
-        private int pushFailedCount;
+        private int enqueueSkippedCount;
     }
 }

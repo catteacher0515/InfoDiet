@@ -113,6 +113,36 @@ public class FeishuPushServiceImpl implements FeishuPushService {
     }
 
     /**
+     * 推送单条用户内容到飞书
+     */
+    @Override
+    public boolean pushSingleUserContentItemToFeishu(Long pushId) {
+        if (pushId == null) {
+            return false;
+        }
+        UserContentPush userContentPush = userContentPushService.getById(pushId);
+        if (userContentPush == null) {
+            return false;
+        }
+        validateFeishuConfig();
+        ContentItem contentItem = contentItemService.getById(userContentPush.getContentItemId());
+        if (contentItem == null) {
+            userContentPushService.markPushFailed(userContentPush.getId(), "内容不存在");
+            return false;
+        }
+        PushAttemptResult pushAttemptResult = pushSingleContentItemWithResult(contentItem);
+        if (pushAttemptResult.success()) {
+            userContentPushService.markPushSuccess(userContentPush.getId());
+            return true;
+        }
+        userContentPushService.markPushFailed(
+                userContentPush.getId(),
+                StrUtil.blankToDefault(pushAttemptResult.failReason(), "飞书推送失败")
+        );
+        return false;
+    }
+
+    /**
      * 批量更新推送状态
      */
     @Override

@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
+import com.pingyu.infodiet.service.PushQueueService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -30,5 +31,22 @@ class UserContentPushControllerTest {
         assertEquals(1, response.getData().getSkippedByExistingCount());
         assertEquals(1, response.getData().getSkippedByLimitCount());
         assertEquals(0, response.getData().getSkippedByCooldownCount());
+    }
+
+    @Test
+    void enqueuePendingPushesShouldReturnEnqueueSummary() {
+        PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
+        PushQueueService.EnqueuePushResult enqueuePushResult = new PushQueueService.EnqueuePushResult(4, 4, 0);
+        when(pushQueueService.enqueuePendingPushes("feishu")).thenReturn(enqueuePushResult);
+
+        UserContentPushController controller = new UserContentPushController();
+        ReflectionTestUtils.setField(controller, "pushQueueService", pushQueueService);
+
+        BaseResponse<PushQueueService.EnqueuePushResult> response = controller.enqueuePendingPushes();
+
+        assertEquals(0, response.getCode());
+        assertEquals(4, response.getData().totalCount());
+        assertEquals(4, response.getData().enqueuedCount());
+        assertEquals(0, response.getData().skippedCount());
     }
 }

@@ -121,6 +121,27 @@ class FeishuPushServiceTest {
         verify(userContentPushService, times(1)).markPushFailed(12L, "code=91403,msg=Forbidden");
     }
 
+    @Test
+    void pushSingleUserContentItemToFeishuShouldUpdatePushStatus() {
+        ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+
+        TestableFeishuPushService service = new TestableFeishuPushService();
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+        ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+
+        when(userContentPushService.getById(11L)).thenReturn(
+                UserContentPush.builder().id(11L).contentItemId(1L).build()
+        );
+        when(contentItemService.getById(1L)).thenReturn(ContentItem.builder().id(1L).title("first").build());
+        service.pushResults.add(new FeishuPushServiceImpl.PushAttemptResult(true, null));
+
+        boolean result = service.pushSingleUserContentItemToFeishu(11L);
+
+        assertEquals(true, result);
+        verify(userContentPushService, times(1)).markPushSuccess(11L);
+    }
+
     private static class TestableFeishuPushService extends FeishuPushServiceImpl {
 
         private final List<ContentItem> pendingItems = new ArrayList<>();

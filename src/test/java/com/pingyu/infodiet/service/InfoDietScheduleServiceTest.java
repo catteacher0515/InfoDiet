@@ -20,7 +20,7 @@ class InfoDietScheduleServiceTest {
     void runDailyGithubFlowShouldOrchestrateWholePipeline() {
         GithubTrendingService githubTrendingService = Mockito.mock(GithubTrendingService.class);
         ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
-        FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+        PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
 
         GithubTrendingItemDTO first = new GithubTrendingItemDTO();
@@ -34,8 +34,8 @@ class InfoDietScheduleServiceTest {
                 .thenReturn(new ContentItemService.KeywordFilterResult(2, 1, 1));
         when(userContentPushService.createPendingPushes())
                 .thenReturn(new UserContentPushService.CreatePushResult(1, 1, 0));
-        when(feishuPushService.pushUserContentItemsToFeishu())
-                .thenReturn(new FeishuPushService.PushResult(1, 1, 0));
+        when(pushQueueService.enqueuePendingPushes("feishu"))
+                .thenReturn(new PushQueueService.EnqueuePushResult(1, 1, 0));
 
         InfoDietProperties infoDietProperties = new InfoDietProperties();
         infoDietProperties.setKeywords(List.of("agent", "workflow"));
@@ -43,8 +43,8 @@ class InfoDietScheduleServiceTest {
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "githubTrendingService", githubTrendingService);
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
-        ReflectionTestUtils.setField(service, "feishuPushService", feishuPushService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+        ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
         ReflectionTestUtils.setField(service, "infoDietProperties", infoDietProperties);
 
         InfoDietScheduleService.ScheduleResult result = service.runDailyGithubFlow();
@@ -54,14 +54,14 @@ class InfoDietScheduleServiceTest {
         assertEquals(1, result.getSkippedCount());
         assertEquals(1, result.getMatchedCount());
         assertEquals(1, result.getUnmatchedCount());
-        assertEquals(1, result.getPushSuccessCount());
-        assertEquals(0, result.getPushFailedCount());
+        assertEquals(1, result.getEnqueuedCount());
+        assertEquals(0, result.getEnqueueSkippedCount());
 
         verify(githubTrendingService).crawlGitHubTrending();
         verify(contentItemService).saveGithubTrendingItems(dtoList);
         verify(contentItemService).filterByKeywords(List.of("agent", "workflow"));
         verify(userContentPushService).createPendingPushes();
-        verify(feishuPushService).pushUserContentItemsToFeishu();
+        verify(pushQueueService).enqueuePendingPushes("feishu");
     }
 
     @Test
@@ -86,19 +86,19 @@ class InfoDietScheduleServiceTest {
     void runDailyYoutubeSourcePushFlowShouldOrchestrateWholePipeline() {
         SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
-        FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+        PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
 
         when(sourceSubscriptionCrawlService.crawlAllSourceSubscriptions())
                 .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
         when(userContentPushService.createPendingPushes())
                 .thenReturn(new UserContentPushService.CreatePushResult(5, 3, 2));
-        when(feishuPushService.pushUserContentItemsToFeishu())
-                .thenReturn(new FeishuPushService.PushResult(3, 3, 0));
+        when(pushQueueService.enqueuePendingPushes("feishu"))
+                .thenReturn(new PushQueueService.EnqueuePushResult(3, 3, 0));
 
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
-        ReflectionTestUtils.setField(service, "feishuPushService", feishuPushService);
+        ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
 
         InfoDietScheduleService.YoutubeSourceScheduleResult result = service.runDailyYoutubeSourcePushFlow();
 
@@ -108,11 +108,11 @@ class InfoDietScheduleServiceTest {
         assertEquals(2, result.getSkippedCount());
         assertEquals(3, result.getPendingPushCreatedCount());
         assertEquals(2, result.getPendingPushSkippedCount());
-        assertEquals(3, result.getPushSuccessCount());
-        assertEquals(0, result.getPushFailedCount());
+        assertEquals(3, result.getEnqueuedCount());
+        assertEquals(0, result.getEnqueueSkippedCount());
 
         verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
         verify(userContentPushService).createPendingPushes();
-        verify(feishuPushService).pushUserContentItemsToFeishu();
+        verify(pushQueueService).enqueuePendingPushes("feishu");
     }
 }

@@ -72,4 +72,5 @@ public interface UserContentPushService extends IService<UserContentPush> {
             this(totalCount, createdCount, skippedCount, 0, 0, 0);
         }
     }
+
 }

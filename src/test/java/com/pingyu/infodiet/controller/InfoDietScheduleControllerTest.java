@@ -30,8 +30,8 @@ class InfoDietScheduleControllerTest {
         assertEquals(5, response.getData().getSkippedCount());
         assertEquals(6, response.getData().getMatchedCount());
         assertEquals(9, response.getData().getUnmatchedCount());
-        assertEquals(6, response.getData().getPushSuccessCount());
-        assertEquals(0, response.getData().getPushFailedCount());
+        assertEquals(6, response.getData().getEnqueuedCount());
+        assertEquals(0, response.getData().getEnqueueSkippedCount());
     }
 
     @Test
@@ -54,7 +54,7 @@ class InfoDietScheduleControllerTest {
         assertEquals(2, response.getData().getSkippedCount());
         assertEquals(3, response.getData().getPendingPushCreatedCount());
         assertEquals(2, response.getData().getPendingPushSkippedCount());
-        assertEquals(3, response.getData().getPushSuccessCount());
-        assertEquals(0, response.getData().getPushFailedCount());
+        assertEquals(3, response.getData().getEnqueuedCount());
+        assertEquals(0, response.getData().getEnqueueSkippedCount());
     }
 }
