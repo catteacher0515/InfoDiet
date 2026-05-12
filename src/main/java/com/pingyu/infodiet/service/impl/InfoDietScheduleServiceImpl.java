@@ -3,6 +3,7 @@ package com.pingyu.infodiet.service.impl;
 import com.pingyu.infodiet.config.InfoDietProperties;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.CrawlTaskLog;
+import com.pingyu.infodiet.service.AlertRecordService;
 import com.pingyu.infodiet.service.CrawlTaskLogService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.GithubTrendingService;
@@ -43,6 +44,9 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
     @Resource
     private CrawlTaskLogService crawlTaskLogService;
 
+    @Resource
+    private AlertRecordService alertRecordService;
+
     /**
      * 执行每日 GitHub 流程
      */
@@ -82,6 +86,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
             return result;
         } catch (RuntimeException e) {
             crawlTaskLogService.save(crawlTaskLogService.buildFailedLog("github_daily_flow", "system", startTime, e));
+            createTaskFailedAlert(e);
             throw e;
         }
     }
@@ -110,6 +115,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
             return result;
         } catch (RuntimeException e) {
             crawlTaskLogService.save(crawlTaskLogService.buildFailedLog("youtube_source_crawl_flow", "system", startTime, e));
+            createTaskFailedAlert(e);
             throw e;
         }
     }
@@ -151,8 +157,23 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
             return result;
         } catch (RuntimeException e) {
             crawlTaskLogService.save(crawlTaskLogService.buildFailedLog("youtube_source_push_flow", "system", startTime, e));
+            createTaskFailedAlert(e);
             throw e;
         }
+    }
+
+    /**
+     * 记录任务失败告警
+     */
+    protected void createTaskFailedAlert(RuntimeException e) {
+        alertRecordService.createOrUpdateAlert(
+                "task_failed",
+                "error",
+                "crawl_task_log",
+                null,
+                "调度任务执行失败",
+                e == null ? "未知异常" : e.getMessage()
+        );
     }
 
     /**

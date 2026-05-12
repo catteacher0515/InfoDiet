@@ -95,11 +95,13 @@ class FeishuPushServiceTest {
         LocalDateTime fixedNow = LocalDateTime.of(2026, 5, 7, 9, 30);
         ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
 
         TestableFeishuPushService service = new TestableFeishuPushService();
         service.fixedNow = fixedNow;
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
         UserContentPush firstPush = UserContentPush.builder().id(11L).contentItemId(1L).build();
         UserContentPush secondPush = UserContentPush.builder().id(12L).contentItemId(2L).build();
@@ -125,10 +127,12 @@ class FeishuPushServiceTest {
     void pushSingleUserContentItemToFeishuShouldUpdatePushStatus() {
         ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
 
         TestableFeishuPushService service = new TestableFeishuPushService();
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
         when(userContentPushService.getById(11L)).thenReturn(
                 UserContentPush.builder().id(11L).contentItemId(1L).build()
@@ -140,6 +144,37 @@ class FeishuPushServiceTest {
 
         assertEquals(true, result);
         verify(userContentPushService, times(1)).markPushSuccess(11L);
+    }
+
+    @Test
+    void pushSingleUserContentItemToFeishuShouldCreateAlertWhenFinalFailed() {
+        ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
+
+        TestableFeishuPushService service = new TestableFeishuPushService();
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+        ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
+
+        when(userContentPushService.getById(11L)).thenReturn(
+                UserContentPush.builder().id(11L).contentItemId(1L).retryCount(2).maxRetryCount(3).build()
+        );
+        when(contentItemService.getById(1L)).thenReturn(ContentItem.builder().id(1L).title("first").build());
+        service.pushResults.add(new FeishuPushServiceImpl.PushAttemptResult(false, "code=91403,msg=Forbidden"));
+
+        boolean result = service.pushSingleUserContentItemToFeishu(11L);
+
+        assertEquals(false, result);
+        verify(userContentPushService, times(1)).markPushFailed(11L, "code=91403,msg=Forbidden");
+        verify(alertRecordService, times(1)).createOrUpdateAlert(
+                Mockito.eq("push_final_failed"),
+                Mockito.eq("error"),
+                Mockito.eq("user_content_push"),
+                Mockito.eq(11L),
+                Mockito.eq("用户内容推送最终失败"),
+                Mockito.contains("code=91403,msg=Forbidden")
+        );
     }
 
     private static class TestableFeishuPushService extends FeishuPushServiceImpl {

@@ -12,6 +12,7 @@ import com.pingyu.infodiet.exception.ErrorCode;
 import com.pingyu.infodiet.exception.ThrowUtils;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
+import com.pingyu.infodiet.service.AlertRecordService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.FeishuPushService;
 import com.pingyu.infodiet.service.UserContentPushService;
@@ -40,6 +41,9 @@ public class FeishuPushServiceImpl implements FeishuPushService {
 
     @Resource
     private UserContentPushService userContentPushService;
+
+    @Resource
+    private AlertRecordService alertRecordService;
 
     /**
      * 查询待推送内容
@@ -128,6 +132,7 @@ public class FeishuPushServiceImpl implements FeishuPushService {
         ContentItem contentItem = contentItemService.getById(userContentPush.getContentItemId());
         if (contentItem == null) {
             userContentPushService.markPushFailed(userContentPush.getId(), "内容不存在");
+            createFinalPushFailedAlertIfNeeded(userContentPush, "内容不存在");
             return false;
         }
         PushAttemptResult pushAttemptResult = pushSingleContentItemWithResult(contentItem);
@@ -137,6 +142,10 @@ public class FeishuPushServiceImpl implements FeishuPushService {
         }
         userContentPushService.markPushFailed(
                 userContentPush.getId(),
+                StrUtil.blankToDefault(pushAttemptResult.failReason(), "飞书推送失败")
+        );
+        createFinalPushFailedAlertIfNeeded(
+                userContentPush,
                 StrUtil.blankToDefault(pushAttemptResult.failReason(), "飞书推送失败")
         );
         return false;
@@ -221,6 +230,35 @@ public class FeishuPushServiceImpl implements FeishuPushService {
      */
     protected List<UserContentPush> listPendingUserPushItems() {
         return userContentPushService.listEnqueueablePushesByChannel("feishu");
+    }
+
+    /**
+     * 记录最终失败推送告警
+     */
+    protected void createFinalPushFailedAlertIfNeeded(UserContentPush userContentPush, String failReason) {
+        if (!isFinalFailure(userContentPush)) {
+            return;
+        }
+        alertRecordService.createOrUpdateAlert(
+                "push_final_failed",
+                "error",
+                "user_content_push",
+                userContentPush.getId(),
+                "用户内容推送最终失败",
+                "pushId=" + userContentPush.getId() + ", reason=" + failReason
+        );
+    }
+
+    /**
+     * 判断是否达到最终失败条件
+     */
+    protected boolean isFinalFailure(UserContentPush userContentPush) {
+        if (userContentPush == null) {
+            return false;
+        }
+        int currentRetryCount = userContentPush.getRetryCount() == null ? 0 : userContentPush.getRetryCount();
+        int maxRetryCount = userContentPush.getMaxRetryCount() == null ? 3 : userContentPush.getMaxRetryCount();
+        return currentRetryCount + 1 >= maxRetryCount;
     }
 
     /**

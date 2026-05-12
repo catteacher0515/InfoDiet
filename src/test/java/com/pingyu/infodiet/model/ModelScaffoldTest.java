@@ -4,6 +4,7 @@ import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
 import com.pingyu.infodiet.generator.MyBatisCodeGenerator;
+import com.pingyu.infodiet.model.entity.AlertRecord;
 import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
@@ -148,6 +149,31 @@ class ModelScaffoldTest {
         assertEquals(LocalDateTime.class, CrawlTaskLog.class.getDeclaredField("startTime").getType());
         assertEquals(LocalDateTime.class, CrawlTaskLog.class.getDeclaredField("endTime").getType());
         assertEquals(Long.class, CrawlTaskLog.class.getDeclaredField("durationMs").getType());
+    }
+
+    @Test
+    void alertRecordShouldBeMyBatisFlexEntityForAlertTable() throws NoSuchFieldException {
+        Table table = AlertRecord.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("alert_record", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(AlertRecord.class));
+
+        Field idField = AlertRecord.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(String.class, AlertRecord.class.getDeclaredField("alertType").getType());
+        assertEquals(String.class, AlertRecord.class.getDeclaredField("alertLevel").getType());
+        assertEquals(String.class, AlertRecord.class.getDeclaredField("sourceType").getType());
+        assertEquals(Long.class, AlertRecord.class.getDeclaredField("sourceId").getType());
+        assertEquals(Integer.class, AlertRecord.class.getDeclaredField("alertStatus").getType());
+        assertEquals(String.class, AlertRecord.class.getDeclaredField("alertTitle").getType());
+        assertEquals(String.class, AlertRecord.class.getDeclaredField("alertContent").getType());
+        assertEquals(String.class, AlertRecord.class.getDeclaredField("failReason").getType());
+        assertEquals(LocalDateTime.class, AlertRecord.class.getDeclaredField("firstOccurTime").getType());
+        assertEquals(LocalDateTime.class, AlertRecord.class.getDeclaredField("lastOccurTime").getType());
+        assertEquals(LocalDateTime.class, AlertRecord.class.getDeclaredField("sendTime").getType());
     }
 
     @Test

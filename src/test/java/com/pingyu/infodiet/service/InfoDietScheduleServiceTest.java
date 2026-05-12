@@ -26,6 +26,7 @@ class InfoDietScheduleServiceTest {
         PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
         when(crawlTaskLogService.buildSuccessLog(
                 any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
                 Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
@@ -55,6 +56,7 @@ class InfoDietScheduleServiceTest {
         ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
         ReflectionTestUtils.setField(service, "infoDietProperties", infoDietProperties);
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
         InfoDietScheduleService.ScheduleResult result = service.runDailyGithubFlow();
 
@@ -78,6 +80,7 @@ class InfoDietScheduleServiceTest {
     void runDailyYoutubeSourceFlowShouldInvokeSourceSubscriptionCrawl() {
         SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
         when(crawlTaskLogService.buildSuccessLog(
                 any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
                 Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
@@ -88,6 +91,7 @@ class InfoDietScheduleServiceTest {
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
         SourceSubscriptionCrawlService.CrawlResult result = service.runDailyYoutubeSourceFlow();
 
@@ -105,6 +109,7 @@ class InfoDietScheduleServiceTest {
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
         PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
         when(crawlTaskLogService.buildSuccessLog(
                 any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
                 Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
@@ -122,6 +127,7 @@ class InfoDietScheduleServiceTest {
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
         ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
         InfoDietScheduleService.YoutubeSourceScheduleResult result = service.runDailyYoutubeSourcePushFlow();
 
@@ -144,6 +150,7 @@ class InfoDietScheduleServiceTest {
     void runDailyGithubFlowShouldWriteFailureTaskLogWhenExceptionThrown() {
         GithubTrendingService githubTrendingService = Mockito.mock(GithubTrendingService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
         when(githubTrendingService.crawlGitHubTrending()).thenThrow(new IllegalStateException("GitHub 抓取失败"));
         when(crawlTaskLogService.buildFailedLog(any(), any(), any(), any()))
                 .thenReturn(CrawlTaskLog.builder().taskType("github_daily_flow").taskStatus(2).errorMessage("GitHub 抓取失败").build());
@@ -151,6 +158,7 @@ class InfoDietScheduleServiceTest {
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "githubTrendingService", githubTrendingService);
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
         try {
             service.runDailyGithubFlow();
@@ -164,5 +172,13 @@ class InfoDietScheduleServiceTest {
         assertEquals("github_daily_flow", taskLog.getTaskType());
         assertEquals(2, taskLog.getTaskStatus());
         assertNotNull(taskLog.getErrorMessage());
+        verify(alertRecordService).createOrUpdateAlert(
+                Mockito.eq("task_failed"),
+                Mockito.eq("error"),
+                Mockito.eq("crawl_task_log"),
+                Mockito.isNull(),
+                Mockito.eq("调度任务执行失败"),
+                Mockito.contains("GitHub 抓取失败")
+        );
     }
 }
