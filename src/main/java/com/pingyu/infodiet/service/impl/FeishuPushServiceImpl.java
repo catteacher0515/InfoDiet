@@ -220,7 +220,7 @@ public class FeishuPushServiceImpl implements FeishuPushService {
      * 查询待推送用户内容
      */
     protected List<UserContentPush> listPendingUserPushItems() {
-        return userContentPushService.listPendingPushesByChannel("feishu");
+        return userContentPushService.listEnqueueablePushesByChannel("feishu");
     }
 
     /**

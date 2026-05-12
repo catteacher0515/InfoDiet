@@ -1,5 +1,6 @@
 package com.pingyu.infodiet.service;
 
+import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 import com.pingyu.infodiet.config.InfoDietProperties;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.service.SourceSubscriptionCrawlService;
@@ -11,6 +12,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +25,11 @@ class InfoDietScheduleServiceTest {
         ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
         PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        when(crawlTaskLogService.buildSuccessLog(
+                any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
+        )).thenReturn(CrawlTaskLog.builder().taskType("github_daily_flow").taskStatus(1).build());
 
         GithubTrendingItemDTO first = new GithubTrendingItemDTO();
         GithubTrendingItemDTO second = new GithubTrendingItemDTO();
@@ -46,6 +54,7 @@ class InfoDietScheduleServiceTest {
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
         ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
         ReflectionTestUtils.setField(service, "infoDietProperties", infoDietProperties);
+        ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
 
         InfoDietScheduleService.ScheduleResult result = service.runDailyGithubFlow();
 
@@ -62,16 +71,23 @@ class InfoDietScheduleServiceTest {
         verify(contentItemService).filterByKeywords(List.of("agent", "workflow"));
         verify(userContentPushService).createPendingPushes();
         verify(pushQueueService).enqueuePendingPushes("feishu");
+        verify(crawlTaskLogService).save(any(CrawlTaskLog.class));
     }
 
     @Test
     void runDailyYoutubeSourceFlowShouldInvokeSourceSubscriptionCrawl() {
         SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
+        CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        when(crawlTaskLogService.buildSuccessLog(
+                any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
+        )).thenReturn(CrawlTaskLog.builder().taskType("youtube_source_crawl_flow").taskStatus(1).build());
         when(sourceSubscriptionCrawlService.crawlAllSourceSubscriptions())
                 .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
 
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
+        ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
 
         SourceSubscriptionCrawlService.CrawlResult result = service.runDailyYoutubeSourceFlow();
 
@@ -80,6 +96,7 @@ class InfoDietScheduleServiceTest {
         assertEquals(4, result.getSavedCount());
         assertEquals(2, result.getSkippedCount());
         verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
+        verify(crawlTaskLogService).save(any(CrawlTaskLog.class));
     }
 
     @Test
@@ -87,6 +104,11 @@ class InfoDietScheduleServiceTest {
         SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
         PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
+        CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        when(crawlTaskLogService.buildSuccessLog(
+                any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
+        )).thenReturn(CrawlTaskLog.builder().taskType("youtube_source_push_flow").taskStatus(1).build());
 
         when(sourceSubscriptionCrawlService.crawlAllSourceSubscriptions())
                 .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
@@ -99,6 +121,7 @@ class InfoDietScheduleServiceTest {
         ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
         ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
+        ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
 
         InfoDietScheduleService.YoutubeSourceScheduleResult result = service.runDailyYoutubeSourcePushFlow();
 
@@ -114,5 +137,32 @@ class InfoDietScheduleServiceTest {
         verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
         verify(userContentPushService).createPendingPushes();
         verify(pushQueueService).enqueuePendingPushes("feishu");
+        verify(crawlTaskLogService).save(any(CrawlTaskLog.class));
+    }
+
+    @Test
+    void runDailyGithubFlowShouldWriteFailureTaskLogWhenExceptionThrown() {
+        GithubTrendingService githubTrendingService = Mockito.mock(GithubTrendingService.class);
+        CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        when(githubTrendingService.crawlGitHubTrending()).thenThrow(new IllegalStateException("GitHub 抓取失败"));
+        when(crawlTaskLogService.buildFailedLog(any(), any(), any(), any()))
+                .thenReturn(CrawlTaskLog.builder().taskType("github_daily_flow").taskStatus(2).errorMessage("GitHub 抓取失败").build());
+
+        InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
+        ReflectionTestUtils.setField(service, "githubTrendingService", githubTrendingService);
+        ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+
+        try {
+            service.runDailyGithubFlow();
+        } catch (IllegalStateException e) {
+            assertEquals("GitHub 抓取失败", e.getMessage());
+        }
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CrawlTaskLog.class);
+        verify(crawlTaskLogService).save(captor.capture());
+        CrawlTaskLog taskLog = captor.getValue();
+        assertEquals("github_daily_flow", taskLog.getTaskType());
+        assertEquals(2, taskLog.getTaskStatus());
+        assertNotNull(taskLog.getErrorMessage());
     }
 }

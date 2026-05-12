@@ -15,6 +15,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +25,9 @@ import java.util.Map;
 @Service
 public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMapper, UserContentPush>
         implements UserContentPushService {
+
+    private static final int DEFAULT_MAX_RETRY_COUNT = 3;
+    private static final int RETRY_DELAY_MINUTES = 5;
 
     @Resource
     private SubscriptionMatchService subscriptionMatchService;
@@ -81,6 +85,9 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                         .contentItemId(contentItem.getId())
                         .pushChannel(pushChannel)
                         .pushStatus(0)
+                        .queueStatus(0)
+                        .retryCount(0)
+                        .maxRetryCount(DEFAULT_MAX_RETRY_COUNT)
                         .build();
                 boolean saved = this.save(userContentPush);
                 if (saved) {
@@ -100,14 +107,47 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
     }
 
     /**
-     * 查询待推送记录
+     * 查询可入队推送记录
      */
     @Override
-    public List<UserContentPush> listPendingPushesByChannel(String pushChannel) {
+    public List<UserContentPush> listEnqueueablePushesByChannel(String pushChannel) {
+        LocalDateTime now = now();
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("pushChannel", pushChannel)
-                .eq("pushStatus", 0);
-        return this.list(queryWrapper);
+                .eq("pushStatus", 0)
+                .eq("queueStatus", 0);
+        return this.list(queryWrapper).stream()
+                .filter(item -> item.getNextRetryTime() == null || !item.getNextRetryTime().isAfter(now))
+                .sorted(Comparator.comparing(UserContentPush::getCreateTime, Comparator.nullsLast(LocalDateTime::compareTo)))
+                .toList();
+    }
+
+    /**
+     * 标记已入队
+     */
+    @Override
+    public boolean markQueued(Long pushId) {
+        LocalDateTime now = now();
+        return this.updateChain()
+                .set("queueStatus", 1)
+                .set("lastQueueTime", now)
+                .where("id = ?", pushId)
+                .and("pushStatus = ?", 0)
+                .and("queueStatus = ?", 0)
+                .update();
+    }
+
+    /**
+     * 标记消费中
+     */
+    @Override
+    public boolean markConsuming(Long pushId) {
+        return this.updateChain()
+                .set("queueStatus", 2)
+                .where("id = ?", pushId)
+                .and("pushStatus = ?", 0)
+                .and("queueStatus = ?", 1)
+                .update();
     }
 
     /**
@@ -115,12 +155,16 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
      */
     @Override
     public boolean markPushSuccess(Long pushId) {
-        UserContentPush userContentPush = new UserContentPush();
-        userContentPush.setId(pushId);
-        userContentPush.setPushStatus(1);
-        userContentPush.setPushTime(now());
-        userContentPush.setFailReason(null);
-        return this.updateById(userContentPush);
+        LocalDateTime now = now();
+        return this.updateChain()
+                .set("pushStatus", 1)
+                .set("queueStatus", 3)
+                .set("pushTime", now)
+                .set("failReason", null)
+                .set("nextRetryTime", null)
+                .where("id = ?", pushId)
+                .and("pushStatus = ?", 0)
+                .update();
     }
 
     /**
@@ -128,11 +172,36 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
      */
     @Override
     public boolean markPushFailed(Long pushId, String failReason) {
-        UserContentPush userContentPush = new UserContentPush();
-        userContentPush.setId(pushId);
-        userContentPush.setPushStatus(2);
-        userContentPush.setFailReason(failReason);
-        return this.updateById(userContentPush);
+        UserContentPush userContentPush = this.getById(pushId);
+        if (userContentPush == null || userContentPush.getPushStatus() == 1) {
+            return false;
+        }
+        int currentRetryCount = userContentPush.getRetryCount() == null ? 0 : userContentPush.getRetryCount();
+        int maxRetryCount = userContentPush.getMaxRetryCount() == null
+                ? DEFAULT_MAX_RETRY_COUNT
+                : userContentPush.getMaxRetryCount();
+        int nextRetryCount = currentRetryCount + 1;
+        LocalDateTime now = now();
+        if (nextRetryCount >= maxRetryCount) {
+            return this.updateChain()
+                    .set("pushStatus", 2)
+                    .set("queueStatus", 3)
+                    .set("retryCount", nextRetryCount)
+                    .set("failReason", failReason)
+                    .set("nextRetryTime", null)
+                    .where("id = ?", pushId)
+                    .and("pushStatus = ?", 0)
+                    .update();
+        }
+        return this.updateChain()
+                .set("pushStatus", 0)
+                .set("queueStatus", 0)
+                .set("retryCount", nextRetryCount)
+                .set("failReason", failReason)
+                .set("nextRetryTime", now.plusMinutes(RETRY_DELAY_MINUTES))
+                .where("id = ?", pushId)
+                .and("pushStatus = ?", 0)
+                .update();
     }
 
     /**

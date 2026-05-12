@@ -33,10 +33,14 @@ public class RedisCacheConfig {
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        GenericJackson2JsonRedisSerializer serializer = GenericJackson2JsonRedisSerializer.builder()
+                .defaultTyping(true)
+                .objectMapper(objectMapper)
+                .build();
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper)))
+                        .fromSerializer(serializer))
                 .disableCachingNullValues()
                 .entryTtl(Duration.ofMinutes(10));
 

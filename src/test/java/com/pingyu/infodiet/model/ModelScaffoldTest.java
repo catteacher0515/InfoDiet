@@ -4,6 +4,7 @@ import com.mybatisflex.annotation.Id;
 import com.mybatisflex.annotation.KeyType;
 import com.mybatisflex.annotation.Table;
 import com.pingyu.infodiet.generator.MyBatisCodeGenerator;
+import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
@@ -117,8 +118,36 @@ class ModelScaffoldTest {
         assertEquals(Long.class, UserContentPush.class.getDeclaredField("contentItemId").getType());
         assertEquals(String.class, UserContentPush.class.getDeclaredField("pushChannel").getType());
         assertEquals(Integer.class, UserContentPush.class.getDeclaredField("pushStatus").getType());
+        assertEquals(Integer.class, UserContentPush.class.getDeclaredField("queueStatus").getType());
+        assertEquals(Integer.class, UserContentPush.class.getDeclaredField("retryCount").getType());
+        assertEquals(Integer.class, UserContentPush.class.getDeclaredField("maxRetryCount").getType());
+        assertEquals(LocalDateTime.class, UserContentPush.class.getDeclaredField("nextRetryTime").getType());
+        assertEquals(LocalDateTime.class, UserContentPush.class.getDeclaredField("lastQueueTime").getType());
         assertEquals(String.class, UserContentPush.class.getDeclaredField("failReason").getType());
         assertEquals(LocalDateTime.class, UserContentPush.class.getDeclaredField("pushTime").getType());
+    }
+
+    @Test
+    void crawlTaskLogShouldBeMyBatisFlexEntityForTaskLogTable() throws NoSuchFieldException {
+        Table table = CrawlTaskLog.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("crawl_task_log", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(CrawlTaskLog.class));
+
+        Field idField = CrawlTaskLog.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(String.class, CrawlTaskLog.class.getDeclaredField("taskType").getType());
+        assertEquals(String.class, CrawlTaskLog.class.getDeclaredField("triggerSource").getType());
+        assertEquals(Integer.class, CrawlTaskLog.class.getDeclaredField("taskStatus").getType());
+        assertEquals(Integer.class, CrawlTaskLog.class.getDeclaredField("crawlCount").getType());
+        assertEquals(Integer.class, CrawlTaskLog.class.getDeclaredField("enqueuedCount").getType());
+        assertEquals(String.class, CrawlTaskLog.class.getDeclaredField("errorMessage").getType());
+        assertEquals(LocalDateTime.class, CrawlTaskLog.class.getDeclaredField("startTime").getType());
+        assertEquals(LocalDateTime.class, CrawlTaskLog.class.getDeclaredField("endTime").getType());
+        assertEquals(Long.class, CrawlTaskLog.class.getDeclaredField("durationMs").getType());
     }
 
     @Test

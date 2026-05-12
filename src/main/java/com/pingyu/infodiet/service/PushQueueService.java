@@ -25,5 +25,5 @@ public interface PushQueueService {
     /**
      * 处理单条推送消息
      */
-    void handlePushMessage(PushMessage pushMessage);
+    boolean handlePushMessage(PushMessage pushMessage);
 }

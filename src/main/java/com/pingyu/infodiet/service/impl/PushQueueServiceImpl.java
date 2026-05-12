@@ -42,17 +42,23 @@ public class PushQueueServiceImpl implements PushQueueService {
      */
     @Override
     public EnqueuePushResult enqueuePendingPushes(String pushChannel) {
-        List<UserContentPush> pendingPushes = userContentPushService.listPendingPushesByChannel(pushChannel);
+        List<UserContentPush> pendingPushes = userContentPushService.listEnqueueablePushesByChannel(pushChannel);
         if (CollUtil.isEmpty(pendingPushes)) {
             return new EnqueuePushResult(0, 0, 0);
         }
         int enqueuedCount = 0;
         int skippedCount = 0;
         for (UserContentPush pendingPush : pendingPushes) {
+            boolean queued = userContentPushService.markQueued(pendingPush.getId());
+            if (!queued) {
+                skippedCount++;
+                continue;
+            }
             RecordId recordId = stringRedisTemplate.opsForStream().add(buildRecord(pendingPush));
             if (recordId != null) {
                 enqueuedCount++;
             } else {
+                userContentPushService.markPushFailed(pendingPush.getId(), "消息入队失败");
                 skippedCount++;
             }
         }
@@ -63,15 +69,20 @@ public class PushQueueServiceImpl implements PushQueueService {
      * 处理单条推送消息
      */
     @Override
-    public void handlePushMessage(PushMessage pushMessage) {
+    public boolean handlePushMessage(PushMessage pushMessage) {
         if (pushMessage == null || pushMessage.pushId() == null || StrUtil.isBlank(pushMessage.pushChannel())) {
-            return;
+            return false;
+        }
+        boolean consuming = userContentPushService.markConsuming(pushMessage.pushId());
+        if (!consuming) {
+            return false;
         }
         if (StrUtil.equalsIgnoreCase(pushMessage.pushChannel(), "feishu")) {
-            feishuPushService.pushSingleUserContentItemToFeishu(pushMessage.pushId());
-            return;
+            return feishuPushService.pushSingleUserContentItemToFeishu(pushMessage.pushId());
         }
         log.warn("暂不支持的推送渠道，pushId={}, pushChannel={}", pushMessage.pushId(), pushMessage.pushChannel());
+        userContentPushService.markPushFailed(pushMessage.pushId(), "暂不支持的推送渠道");
+        return false;
     }
 
     /**

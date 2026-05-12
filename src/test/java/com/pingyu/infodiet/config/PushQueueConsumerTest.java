@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class PushQueueConsumerTest {
 
@@ -20,6 +21,9 @@ class PushQueueConsumerTest {
 
         PushQueueConsumer consumer = new PushQueueConsumer();
         ReflectionTestUtils.setField(consumer, "pushQueueService", pushQueueService);
+        when(pushQueueService.handlePushMessage(
+                new PushQueueService.PushMessage(1L, 11L, 101L, "feishu")
+        )).thenReturn(true);
 
         Map<String, String> value = new LinkedHashMap<>();
         value.put("pushId", "1");

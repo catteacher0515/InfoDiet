@@ -19,9 +19,19 @@ public interface UserContentPushService extends IService<UserContentPush> {
     CreatePushResult createPendingPushes();
 
     /**
-     * 查询待推送记录
+     * 查询可入队推送记录
      */
-    List<UserContentPush> listPendingPushesByChannel(String pushChannel);
+    List<UserContentPush> listEnqueueablePushesByChannel(String pushChannel);
+
+    /**
+     * 标记已入队
+     */
+    boolean markQueued(Long pushId);
+
+    /**
+     * 标记消费中
+     */
+    boolean markConsuming(Long pushId);
 
     /**
      * 标记推送成功

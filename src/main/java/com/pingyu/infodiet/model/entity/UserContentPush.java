@@ -58,6 +58,36 @@ public class UserContentPush implements Serializable {
     private Integer pushStatus;
 
     /**
+     * 队列状态 0-待入队 1-已入队 2-消费中 3-已完成
+     */
+    @Column("queueStatus")
+    private Integer queueStatus;
+
+    /**
+     * 已重试次数
+     */
+    @Column("retryCount")
+    private Integer retryCount;
+
+    /**
+     * 最大重试次数
+     */
+    @Column("maxRetryCount")
+    private Integer maxRetryCount;
+
+    /**
+     * 下次重试时间
+     */
+    @Column("nextRetryTime")
+    private LocalDateTime nextRetryTime;
+
+    /**
+     * 最近入队时间
+     */
+    @Column("lastQueueTime")
+    private LocalDateTime lastQueueTime;
+
+    /**
      * 推送时间
      */
     @Column("pushTime")

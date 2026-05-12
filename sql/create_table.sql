@@ -84,6 +84,11 @@ create table if not exists user_content_push
     contentItemId bigint                                 not null comment '内容 ID',
     pushChannel   varchar(32)                            not null comment '推送渠道',
     pushStatus    tinyint                                not null default 0 comment '推送状态 0-待推送 1-推送成功 2-推送失败',
+    queueStatus   tinyint                                not null default 0 comment '队列状态 0-待入队 1-已入队 2-消费中 3-已完成',
+    retryCount    int                                    not null default 0 comment '已重试次数',
+    maxRetryCount int                                    not null default 3 comment '最大重试次数',
+    nextRetryTime datetime                               null comment '下次重试时间',
+    lastQueueTime datetime                               null comment '最近入队时间',
     pushTime      datetime                               null comment '推送时间',
     failReason    varchar(512)                           null comment '失败原因',
     createTime    datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
@@ -91,7 +96,8 @@ create table if not exists user_content_push
     isDelete      tinyint  default 0                     not null comment '是否删除',
     unique key uk_user_content (userId, contentItemId),
     index idx_pushStatus_channel (pushStatus, pushChannel),
-    index idx_userId_pushStatus (userId, pushStatus)
+    index idx_userId_pushStatus (userId, pushStatus),
+    index idx_queueStatus_retryTime (queueStatus, nextRetryTime)
 ) comment '用户内容推送表' collate = utf8mb4_unicode_ci;
 
 create table if not exists user_source_subscription
@@ -109,3 +115,28 @@ create table if not exists user_source_subscription
     index idx_userId_status (userId, status),
     index idx_platform_sourceType (platform, sourceType)
 ) comment '用户订阅源表' collate = utf8mb4_unicode_ci;
+
+create table if not exists crawl_task_log
+(
+    id                 bigint auto_increment comment '主键' primary key,
+    taskType           varchar(64)                            not null comment '任务类型',
+    triggerSource      varchar(32)                            not null default 'system' comment '触发来源',
+    taskStatus         tinyint                                not null default 0 comment '任务状态 0-运行中 1-成功 2-失败',
+    totalSourceCount   int                                    not null default 0 comment '处理订阅源数量',
+    crawlCount         int                                    not null default 0 comment '抓取内容数量',
+    savedCount         int                                    not null default 0 comment '新增入库数量',
+    skippedCount       int                                    not null default 0 comment '跳过数量',
+    matchedCount       int                                    not null default 0 comment '匹配数量',
+    unmatchedCount     int                                    not null default 0 comment '未匹配数量',
+    enqueuedCount      int                                    not null default 0 comment '成功入队数量',
+    enqueueSkippedCount int                                   not null default 0 comment '入队跳过数量',
+    errorMessage       varchar(1024)                          null comment '错误信息',
+    startTime          datetime                               not null comment '开始时间',
+    endTime            datetime                               null comment '结束时间',
+    durationMs         bigint                                 null comment '耗时毫秒数',
+    createTime         datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
+    updateTime         datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete           tinyint  default 0                     not null comment '是否删除',
+    index idx_taskType_startTime (taskType, startTime),
+    index idx_taskStatus_startTime (taskStatus, startTime)
+) comment '采集任务日志表' collate = utf8mb4_unicode_ci;

@@ -87,7 +87,7 @@ public class PushQueueConsumer {
     /**
      * 处理单条消息
      */
-    protected void handleRecord(MapRecord<String, Object, Object> record) {
+    protected boolean handleRecord(MapRecord<String, Object, Object> record) {
         Map<Object, Object> value = record.getValue();
         PushQueueService.PushMessage pushMessage = new PushQueueService.PushMessage(
                 parseLong(value.get("pushId")),
@@ -95,7 +95,7 @@ public class PushQueueConsumer {
                 parseLong(value.get("contentItemId")),
                 value.get("pushChannel") == null ? "" : String.valueOf(value.get("pushChannel"))
         );
-        pushQueueService.handlePushMessage(pushMessage);
+        return pushQueueService.handlePushMessage(pushMessage);
     }
 
     /**
