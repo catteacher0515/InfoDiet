@@ -1,11 +1,14 @@
 package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
+import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.service.PushQueueService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
@@ -62,5 +65,40 @@ class UserContentPushControllerTest {
 
         assertEquals(0, response.getCode());
         assertEquals(true, response.getData());
+    }
+
+    @Test
+    void listFailedPushesShouldReturnFailedPushList() {
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        when(userContentPushService.listFailedPushesByChannel("feishu")).thenReturn(List.of(
+                UserContentPush.builder().id(1L).pushStatus(2).build()
+        ));
+
+        UserContentPushController controller = new UserContentPushController();
+        ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
+
+        BaseResponse<List<UserContentPush>> response = controller.listFailedPushes();
+
+        assertEquals(0, response.getCode());
+        assertEquals(1, response.getData().size());
+        assertEquals(1L, response.getData().getFirst().getId());
+    }
+
+    @Test
+    void retryFailedPushesShouldReturnBatchRetrySummary() {
+        UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
+        UserContentPushService.BatchRetryResult batchRetryResult =
+                new UserContentPushService.BatchRetryResult(3, 2, 1);
+        when(userContentPushService.retryFailedPushes(List.of(1L, 2L, 3L))).thenReturn(batchRetryResult);
+
+        UserContentPushController controller = new UserContentPushController();
+        ReflectionTestUtils.setField(controller, "userContentPushService", userContentPushService);
+
+        BaseResponse<UserContentPushService.BatchRetryResult> response = controller.retryFailedPushes(List.of(1L, 2L, 3L));
+
+        assertEquals(0, response.getCode());
+        assertEquals(3, response.getData().getTotalCount());
+        assertEquals(2, response.getData().getSuccessCount());
+        assertEquals(1, response.getData().getFailedCount());
     }
 }

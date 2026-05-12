@@ -48,6 +48,16 @@ public interface UserContentPushService extends IService<UserContentPush> {
      */
     boolean retryFailedPush(Long pushId);
 
+    /**
+     * 查询失败推送列表
+     */
+    List<UserContentPush> listFailedPushesByChannel(String pushChannel);
+
+    /**
+     * 批量重试失败推送
+     */
+    BatchRetryResult retryFailedPushes(List<Long> pushIdList);
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -86,6 +96,27 @@ public interface UserContentPushService extends IService<UserContentPush> {
         public CreatePushResult(int totalCount, int createdCount, int skippedCount) {
             this(totalCount, createdCount, skippedCount, 0, 0, 0);
         }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class BatchRetryResult {
+
+        /**
+         * 总数
+         */
+        private int totalCount;
+
+        /**
+         * 成功数
+         */
+        private int successCount;
+
+        /**
+         * 失败数
+         */
+        private int failedCount;
     }
 
 }

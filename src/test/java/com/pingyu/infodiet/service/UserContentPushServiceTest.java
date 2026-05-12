@@ -411,6 +411,61 @@ class UserContentPushServiceTest {
         assertNull(updated.getNextRetryTime());
     }
 
+    @Test
+    void listFailedPushesByChannelShouldOnlyReturnFailedPushesOfCurrentChannel() {
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .pushChannel("feishu")
+                .pushStatus(2)
+                .queueStatus(3)
+                .build());
+        service.savedItems.add(UserContentPush.builder()
+                .id(2L)
+                .pushChannel("feishu")
+                .pushStatus(0)
+                .queueStatus(0)
+                .build());
+        service.savedItems.add(UserContentPush.builder()
+                .id(3L)
+                .pushChannel("telegram")
+                .pushStatus(2)
+                .queueStatus(3)
+                .build());
+
+        List<UserContentPush> result = service.listFailedPushesByChannel("feishu");
+
+        assertEquals(1, result.size());
+        assertEquals(1L, result.getFirst().getId());
+    }
+
+    @Test
+    void retryFailedPushesShouldReturnBatchSummary() {
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .pushChannel("feishu")
+                .pushStatus(2)
+                .queueStatus(3)
+                .retryCount(3)
+                .build());
+        service.savedItems.add(UserContentPush.builder()
+                .id(2L)
+                .pushChannel("feishu")
+                .pushStatus(1)
+                .queueStatus(3)
+                .retryCount(0)
+                .build());
+
+        UserContentPushService.BatchRetryResult result = service.retryFailedPushes(List.of(1L, 2L, 3L));
+
+        assertEquals(3, result.getTotalCount());
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(2, result.getFailedCount());
+        assertEquals(0, service.findById(1L).getPushStatus());
+        assertEquals(0, service.findById(1L).getQueueStatus());
+    }
+
     private static class InMemoryUserContentPushService extends UserContentPushServiceImpl {
 
         private final List<UserContentPush> savedItems = new ArrayList<>();
@@ -442,6 +497,14 @@ class UserContentPushServiceTest {
                     .filter(item -> item.getPushStatus() != null && item.getPushStatus() == 0)
                     .filter(item -> item.getQueueStatus() != null && item.getQueueStatus() == 0)
                     .filter(item -> item.getNextRetryTime() == null || !item.getNextRetryTime().isAfter(fixedNow))
+                    .toList();
+        }
+
+        @Override
+        public List<UserContentPush> listFailedPushesByChannel(String pushChannel) {
+            return savedItems.stream()
+                    .filter(item -> pushChannel.equals(item.getPushChannel()))
+                    .filter(item -> item.getPushStatus() != null && item.getPushStatus() == 2)
                     .toList();
         }
 

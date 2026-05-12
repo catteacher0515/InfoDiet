@@ -225,6 +225,35 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
     }
 
     /**
+     * 查询失败推送列表
+     */
+    @Override
+    public List<UserContentPush> listFailedPushesByChannel(String pushChannel) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("pushChannel", pushChannel)
+                .eq("pushStatus", 2)
+                .orderBy("updateTime", false);
+        return this.list(queryWrapper);
+    }
+
+    /**
+     * 批量重试失败推送
+     */
+    @Override
+    public BatchRetryResult retryFailedPushes(List<Long> pushIdList) {
+        if (CollUtil.isEmpty(pushIdList)) {
+            return new BatchRetryResult(0, 0, 0);
+        }
+        int successCount = 0;
+        for (Long pushId : pushIdList) {
+            if (retryFailedPush(pushId)) {
+                successCount++;
+            }
+        }
+        return new BatchRetryResult(pushIdList.size(), successCount, pushIdList.size() - successCount);
+    }
+
+    /**
      * 判断推送记录是否已存在
      */
     protected boolean existsByUserIdAndContentItemId(Long userId, Long contentItemId) {
