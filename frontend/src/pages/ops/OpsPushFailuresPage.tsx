@@ -1,22 +1,33 @@
 import { useEffect, useState } from 'react'
-import { batchRetryFailedPushes, fetchFailedPushOverview, fetchFailedPushes, retryFailedPush } from '../../api/ops'
+import { batchRetryFailedPushes, fetchFailedPushOverview, fetchFailedPushPage, retryFailedPush } from '../../api/ops'
 import { DataTable } from '../../components/DataTable'
-import type { FailedPushOverview } from '../../types/ops-detail'
 import type { PushFailureItem } from '../../types/ops'
+import type { FailedPushOverview } from '../../types/ops-detail'
 
 export function OpsPushFailuresPage() {
   const [items, setItems] = useState<PushFailureItem[]>([])
   const [overview, setOverview] = useState<FailedPushOverview | null>(null)
+  const [keyword, setKeyword] = useState('')
+  const [retryCount, setRetryCount] = useState('')
+  const [pageNum, setPageNum] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
   const [message, setMessage] = useState('')
 
-  async function loadFailedPushes() {
-    const response = await fetchFailedPushes()
-    setItems(response.data)
+  async function loadFailedPushes(nextPageNum = pageNum) {
+    const response = await fetchFailedPushPage({
+      keyword: keyword || undefined,
+      retryCount: retryCount === '' ? undefined : Number(retryCount),
+      pageNum: nextPageNum,
+      pageSize,
+    })
+    setItems(response.data.records)
+    setTotalCount(response.data.totalCount)
   }
 
   useEffect(() => {
-    void loadFailedPushes()
-  }, [])
+    void loadFailedPushes(pageNum)
+  }, [pageNum])
 
   async function handleRetry(pushId: number) {
     setMessage('')
@@ -46,6 +57,19 @@ export function OpsPushFailuresPage() {
     setOverview(response.data)
   }
 
+  async function handleSearch() {
+    setPageNum(1)
+    const response = await fetchFailedPushPage({
+      keyword: keyword || undefined,
+      retryCount: retryCount === '' ? undefined : Number(retryCount),
+      pageNum: 1,
+      pageSize,
+    })
+    setItems(response.data.records)
+    setTotalCount(response.data.totalCount)
+    setOverview(null)
+  }
+
   return (
     <section className="page-section split-page">
       <div className="page-heading">
@@ -61,6 +85,19 @@ export function OpsPushFailuresPage() {
       </div>
       <div className="content-split admin-users-split">
         <div className="panel">
+          <div className="filter-bar">
+            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索记录 ID / 用户 ID / 内容 ID / 失败原因" />
+            <select value={retryCount} onChange={(event) => setRetryCount(event.target.value)}>
+              <option value="">全部重试次数</option>
+              <option value="0">0 次</option>
+              <option value="1">1 次</option>
+              <option value="2">2 次</option>
+              <option value="3">3 次</option>
+            </select>
+            <button className="ghost-button" type="button" onClick={handleSearch}>
+              查询
+            </button>
+          </div>
           <DataTable
             columns={[
               { key: 'id', title: '记录 ID', render: (item) => item.id },
@@ -85,6 +122,23 @@ export function OpsPushFailuresPage() {
             ]}
             data={items}
           />
+          <div className="pager-bar">
+            <span>共 {totalCount} 条</span>
+            <div className="button-row">
+              <button className="ghost-button table-button" type="button" disabled={pageNum <= 1} onClick={() => setPageNum((prev) => prev - 1)}>
+                上一页
+              </button>
+              <span>第 {pageNum} 页</span>
+              <button
+                className="ghost-button table-button"
+                type="button"
+                disabled={pageNum * pageSize >= totalCount}
+                onClick={() => setPageNum((prev) => prev + 1)}
+              >
+                下一页
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="panel">

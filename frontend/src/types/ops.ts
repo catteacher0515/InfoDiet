@@ -17,6 +17,13 @@ export interface CrawlTaskLogItem {
   errorMessage?: string
 }
 
+export interface PageResult<T> {
+  totalCount: number
+  pageNum: number
+  pageSize: number
+  records: T[]
+}
+
 export interface AlertRecordItem {
   id: number
   alertType: string

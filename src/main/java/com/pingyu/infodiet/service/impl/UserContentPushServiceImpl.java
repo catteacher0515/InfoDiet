@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.UserContentPushMapper;
+import com.pingyu.infodiet.common.PageResponse;
 import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
@@ -246,6 +247,30 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
     }
 
     /**
+     * 分页查询失败推送
+     */
+    @Override
+    public PageResponse<UserContentPush> pageFailedPushes(String pushChannel, String keyword, Integer retryCount, int pageNum, int pageSize) {
+        int safePageNum = Math.max(pageNum, 1);
+        int safePageSize = pageSize <= 0 ? 10 : Math.min(pageSize, 100);
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("pushStatus", 2);
+        if (StrUtil.isNotBlank(pushChannel)) {
+            queryWrapper.eq("pushChannel", pushChannel.trim());
+        }
+        if (retryCount != null) {
+            queryWrapper.eq("retryCount", retryCount);
+        }
+        List<UserContentPush> pushList = this.list(queryWrapper).stream()
+                .filter(item -> matchesKeyword(item, keyword))
+                .sorted(Comparator.comparing(UserContentPush::getUpdateTime, Comparator.nullsLast(LocalDateTime::compareTo)).reversed())
+                .toList();
+        int fromIndex = Math.min((safePageNum - 1) * safePageSize, pushList.size());
+        int toIndex = Math.min(fromIndex + safePageSize, pushList.size());
+        return new PageResponse<>(pushList.size(), safePageNum, safePageSize, pushList.subList(fromIndex, toIndex));
+    }
+
+    /**
      * 查询当前用户推送记录
      */
     @Override
@@ -342,6 +367,20 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
         }
         LocalDateTime nextAllowedPushTime = lastSuccessPushTime.plusHours(userProfile.getPushCooldownHours());
         return now().isBefore(nextAllowedPushTime);
+    }
+
+    /**
+     * 判断是否匹配关键字
+     */
+    protected boolean matchesKeyword(UserContentPush item, String keyword) {
+        if (StrUtil.isBlank(keyword)) {
+            return true;
+        }
+        String safeKeyword = keyword.trim();
+        return String.valueOf(item.getId()).contains(safeKeyword)
+                || String.valueOf(item.getUserId()).contains(safeKeyword)
+                || String.valueOf(item.getContentItemId()).contains(safeKeyword)
+                || StrUtil.containsIgnoreCase(StrUtil.blankToDefault(item.getFailReason(), ""), safeKeyword);
     }
 
     /**

@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react'
-import { fetchRecentTasks, rerunTask, runAllSourceCrawl, runGithubDailyFlow, runYoutubeSourceDailyFlow } from '../../api/ops'
+import {
+  fetchTaskLogDetail,
+  fetchTaskLogPage,
+  rerunTask,
+  runAllSourceCrawl,
+  runGithubDailyFlow,
+  runYoutubeSourceDailyFlow,
+} from '../../api/ops'
 import { DataTable } from '../../components/DataTable'
 import type { CrawlTaskLogItem } from '../../types/ops'
+import type { TaskLogDetail } from '../../types/ops-detail'
 
 function formatDateTime(value?: string) {
   if (!value) {
@@ -12,16 +20,28 @@ function formatDateTime(value?: string) {
 
 export function OpsTasksPage() {
   const [tasks, setTasks] = useState<CrawlTaskLogItem[]>([])
+  const [detail, setDetail] = useState<TaskLogDetail | null>(null)
+  const [taskTypeKeyword, setTaskTypeKeyword] = useState('')
+  const [taskStatus, setTaskStatus] = useState('')
+  const [pageNum, setPageNum] = useState(1)
+  const [pageSize] = useState(10)
+  const [totalCount, setTotalCount] = useState(0)
   const [message, setMessage] = useState('')
 
-  async function loadTasks() {
-    const response = await fetchRecentTasks()
-    setTasks(response.data)
+  async function loadTasks(nextPageNum = pageNum) {
+    const response = await fetchTaskLogPage({
+      taskTypeKeyword: taskTypeKeyword || undefined,
+      taskStatus: taskStatus === '' ? undefined : Number(taskStatus),
+      pageNum: nextPageNum,
+      pageSize,
+    })
+    setTasks(response.data.records)
+    setTotalCount(response.data.totalCount)
   }
 
   useEffect(() => {
-    void loadTasks()
-  }, [])
+    void loadTasks(pageNum)
+  }, [pageNum])
 
   async function handleRunGithubFlow() {
     const response = await runGithubDailyFlow()
@@ -47,8 +67,26 @@ export function OpsTasksPage() {
     await loadTasks()
   }
 
+  async function handleViewDetail(taskLogId: number) {
+    const response = await fetchTaskLogDetail(taskLogId)
+    setDetail(response.data)
+  }
+
+  async function handleSearch() {
+    setPageNum(1)
+    const response = await fetchTaskLogPage({
+      taskTypeKeyword: taskTypeKeyword || undefined,
+      taskStatus: taskStatus === '' ? undefined : Number(taskStatus),
+      pageNum: 1,
+      pageSize,
+    })
+    setTasks(response.data.records)
+    setTotalCount(response.data.totalCount)
+    setDetail(null)
+  }
+
   return (
-    <section className="page-section">
+    <section className="page-section split-page">
       <div className="page-heading">
         <p className="section-kicker">TASK LOGS</p>
         <h2>任务日志</h2>
@@ -68,32 +106,89 @@ export function OpsTasksPage() {
         </div>
         {message ? <p className="form-message">{message}</p> : null}
       </div>
-      <div className="panel">
-        <DataTable
-          columns={[
-            { key: 'taskType', title: '任务类型', render: (item) => item.taskType },
-            { key: 'triggerSource', title: '触发来源', render: (item) => item.triggerSource },
-            { key: 'taskStatus', title: '状态', render: (item) => (item.taskStatus === 1 ? '成功' : item.taskStatus === 2 ? '失败' : '运行中') },
-            { key: 'totalSourceCount', title: '订阅源数', render: (item) => item.totalSourceCount ?? '--' },
-            { key: 'crawlCount', title: '抓取数', render: (item) => item.crawlCount ?? '--' },
-            { key: 'savedCount', title: '新增数', render: (item) => item.savedCount ?? '--' },
-            { key: 'matchedCount', title: '匹配数', render: (item) => item.matchedCount ?? '--' },
-            { key: 'enqueuedCount', title: '入队数', render: (item) => item.enqueuedCount ?? '--' },
-            { key: 'durationMs', title: '耗时(ms)', render: (item) => item.durationMs ?? '--' },
-            { key: 'startTime', title: '开始时间', render: (item) => formatDateTime(item.startTime) },
-            { key: 'errorMessage', title: '错误信息', render: (item) => item.errorMessage || '无' },
-            {
-              key: 'action',
-              title: '操作',
-              render: (item) => (
-                <button className="ghost-button table-button" type="button" onClick={() => handleRerun(item.taskType)}>
-                  重跑
-                </button>
-              ),
-            },
-          ]}
-          data={tasks}
-        />
+      <div className="content-split admin-users-split">
+        <div className="panel">
+          <div className="filter-bar">
+            <input value={taskTypeKeyword} onChange={(event) => setTaskTypeKeyword(event.target.value)} placeholder="按任务类型搜索" />
+            <select value={taskStatus} onChange={(event) => setTaskStatus(event.target.value)}>
+              <option value="">全部状态</option>
+              <option value="1">成功</option>
+              <option value="2">失败</option>
+            </select>
+            <button className="ghost-button" type="button" onClick={handleSearch}>
+              查询
+            </button>
+          </div>
+          <DataTable
+            columns={[
+              { key: 'taskType', title: '任务类型', render: (item) => item.taskType },
+              { key: 'triggerSource', title: '触发来源', render: (item) => item.triggerSource },
+              { key: 'taskStatus', title: '状态', render: (item) => (item.taskStatus === 1 ? '成功' : item.taskStatus === 2 ? '失败' : '运行中') },
+              { key: 'crawlCount', title: '抓取数', render: (item) => item.crawlCount ?? '--' },
+              { key: 'savedCount', title: '新增数', render: (item) => item.savedCount ?? '--' },
+              { key: 'startTime', title: '开始时间', render: (item) => formatDateTime(item.startTime) },
+              {
+                key: 'action',
+                title: '操作',
+                render: (item) => (
+                  <div className="button-row">
+                    <button className="ghost-button table-button" type="button" onClick={() => handleViewDetail(item.id)}>
+                      详情
+                    </button>
+                    <button className="ghost-button table-button" type="button" onClick={() => handleRerun(item.taskType)}>
+                      重跑
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={tasks}
+          />
+          <div className="pager-bar">
+            <span>共 {totalCount} 条</span>
+            <div className="button-row">
+              <button className="ghost-button table-button" type="button" disabled={pageNum <= 1} onClick={() => setPageNum((prev) => prev - 1)}>
+                上一页
+              </button>
+              <span>第 {pageNum} 页</span>
+              <button
+                className="ghost-button table-button"
+                type="button"
+                disabled={pageNum * pageSize >= totalCount}
+                onClick={() => setPageNum((prev) => prev + 1)}
+              >
+                下一页
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h3>任务日志详情</h3>
+          {detail ? (
+            <div className="stack-list">
+              <article className="stack-item">
+                <strong>{detail.taskType}</strong>
+                <span>触发来源：{detail.triggerSource}</span>
+                <em>状态：{detail.taskStatus === 1 ? '成功' : detail.taskStatus === 2 ? '失败' : '运行中'}</em>
+              </article>
+              <article className="stack-item">
+                <strong>执行指标</strong>
+                <span>订阅源：{detail.totalSourceCount ?? '--'} / 抓取：{detail.crawlCount ?? '--'} / 入库：{detail.savedCount ?? '--'}</span>
+                <span>匹配：{detail.matchedCount ?? '--'} / 入队：{detail.enqueuedCount ?? '--'}</span>
+                <em>耗时：{detail.durationMs ?? '--'} ms</em>
+              </article>
+              <article className="stack-item">
+                <strong>时间与异常</strong>
+                <span>开始：{formatDateTime(detail.startTime)}</span>
+                <span>结束：{formatDateTime(detail.endTime)}</span>
+                <em>{detail.errorMessage || '无异常信息'}</em>
+              </article>
+            </div>
+          ) : (
+            <p className="empty-inline">先选择一条任务日志查看详情</p>
+          )}
+        </div>
       </div>
     </section>
   )

@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
+import com.pingyu.infodiet.common.PageResponse;
 import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import lombok.AllArgsConstructor;
@@ -53,6 +54,11 @@ public interface UserContentPushService extends IService<UserContentPush> {
      * 查询失败推送列表
      */
     List<UserContentPush> listFailedPushesByChannel(String pushChannel);
+
+    /**
+     * 分页查询失败推送
+     */
+    PageResponse<UserContentPush> pageFailedPushes(String pushChannel, String keyword, Integer retryCount, int pageNum, int pageSize);
 
     /**
      * 查询当前用户推送记录

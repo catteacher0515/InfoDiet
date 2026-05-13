@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
+import com.pingyu.infodiet.common.PageResponse;
 import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 
 import java.time.LocalDateTime;
@@ -37,4 +38,14 @@ public interface CrawlTaskLogService extends IService<CrawlTaskLog> {
      * 查询最近任务日志
      */
     List<CrawlTaskLog> listRecentLogs(int limit);
+
+    /**
+     * 分页查询任务日志
+     */
+    PageResponse<CrawlTaskLog> pageRecentLogs(String taskTypeKeyword, Integer taskStatus, int pageNum, int pageSize);
+
+    /**
+     * 查询任务日志详情
+     */
+    CrawlTaskLog getTaskLogDetail(Long taskLogId);
 }

@@ -1,10 +1,34 @@
 import http from './http'
 import type { BaseResponse } from '../types/auth'
-import type { AlertRecordItem, CrawlTaskLogItem, PushFailureItem } from '../types/ops'
-import type { FailedPushOverview } from '../types/ops-detail'
+import type { AlertRecordItem, CrawlTaskLogItem, PageResult, PushFailureItem } from '../types/ops'
+import type { FailedPushOverview, TaskLogDetail } from '../types/ops-detail'
 
 export async function fetchRecentTasks() {
   const { data } = await http.get<BaseResponse<CrawlTaskLogItem[]>>('/crawl-task-log/recent?limit=10')
+  return data
+}
+
+export async function fetchTaskLogPage(params: {
+  taskTypeKeyword?: string
+  taskStatus?: number
+  pageNum?: number
+  pageSize?: number
+}) {
+  const search = new URLSearchParams()
+  if (params.taskTypeKeyword) {
+    search.set('taskTypeKeyword', params.taskTypeKeyword)
+  }
+  if (params.taskStatus !== undefined) {
+    search.set('taskStatus', String(params.taskStatus))
+  }
+  search.set('pageNum', String(params.pageNum ?? 1))
+  search.set('pageSize', String(params.pageSize ?? 10))
+  const { data } = await http.get<BaseResponse<PageResult<CrawlTaskLogItem>>>(`/crawl-task-log/page?${search.toString()}`)
+  return data
+}
+
+export async function fetchTaskLogDetail(taskLogId: number) {
+  const { data } = await http.get<BaseResponse<TaskLogDetail>>(`/crawl-task-log/detail/${taskLogId}`)
   return data
 }
 
@@ -30,6 +54,25 @@ export async function sendPendingAlertsToFeishu() {
 
 export async function fetchFailedPushes() {
   const { data } = await http.get<BaseResponse<PushFailureItem[]>>('/user-content-push/failed/list')
+  return data
+}
+
+export async function fetchFailedPushPage(params: {
+  keyword?: string
+  retryCount?: number
+  pageNum?: number
+  pageSize?: number
+}) {
+  const search = new URLSearchParams()
+  if (params.keyword) {
+    search.set('keyword', params.keyword)
+  }
+  if (params.retryCount !== undefined) {
+    search.set('retryCount', String(params.retryCount))
+  }
+  search.set('pageNum', String(params.pageNum ?? 1))
+  search.set('pageSize', String(params.pageSize ?? 10))
+  const { data } = await http.get<BaseResponse<PageResult<PushFailureItem>>>(`/user-content-push/failed/page?${search.toString()}`)
   return data
 }
 

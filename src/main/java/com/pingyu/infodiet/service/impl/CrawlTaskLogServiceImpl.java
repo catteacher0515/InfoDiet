@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.CrawlTaskLogMapper;
+import com.pingyu.infodiet.common.PageResponse;
 import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 import com.pingyu.infodiet.service.CrawlTaskLogService;
 import org.springframework.stereotype.Service;
@@ -82,6 +83,34 @@ public class CrawlTaskLogServiceImpl extends ServiceImpl<CrawlTaskLogMapper, Cra
                 .orderBy("startTime", false)
                 .limit(safeLimit);
         return this.list(queryWrapper);
+    }
+
+    /**
+     * 分页查询任务日志
+     */
+    @Override
+    public PageResponse<CrawlTaskLog> pageRecentLogs(String taskTypeKeyword, Integer taskStatus, int pageNum, int pageSize) {
+        int safePageNum = Math.max(pageNum, 1);
+        int safePageSize = pageSize <= 0 ? 10 : Math.min(pageSize, 100);
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        if (StrUtil.isNotBlank(taskTypeKeyword)) {
+            queryWrapper.like("taskType", taskTypeKeyword.trim());
+        }
+        if (taskStatus != null) {
+            queryWrapper.eq("taskStatus", taskStatus);
+        }
+        long totalCount = this.mapper.selectCountByQuery(queryWrapper);
+        queryWrapper.orderBy("startTime", false)
+                .limit((safePageNum - 1L) * safePageSize, safePageSize);
+        return new PageResponse<>(totalCount, safePageNum, safePageSize, this.list(queryWrapper));
+    }
+
+    /**
+     * 查询任务日志详情
+     */
+    @Override
+    public CrawlTaskLog getTaskLogDetail(Long taskLogId) {
+        return taskLogId == null ? null : this.getById(taskLogId);
     }
 
     /**

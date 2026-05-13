@@ -440,6 +440,24 @@ select:focus {
   color: var(--muted);
 }
 
+.filter-bar,
+.pager-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-bar input {
+  flex: 1 1 320px;
+}
+
+.filter-bar select {
+  width: 180px;
+}
+
 .compact-form {
   margin-bottom: 18px;
 }

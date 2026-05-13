@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
+import com.pingyu.infodiet.common.PageResponse;
 import com.pingyu.infodiet.common.ResultUtils;
 import com.pingyu.infodiet.model.dto.ops.FailedPushOverviewVO;
 import com.pingyu.infodiet.model.entity.UserContentPush;
@@ -59,6 +60,19 @@ public class UserContentPushController {
     @GetMapping("/failed/list")
     public BaseResponse<List<UserContentPush>> listFailedPushes() {
         return ResultUtils.success(userContentPushService.listFailedPushesByChannel("feishu"));
+    }
+
+    /**
+     * 分页查询失败推送
+     */
+    @GetMapping("/failed/page")
+    public BaseResponse<PageResponse<UserContentPush>> pageFailedPushes(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer retryCount,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        return ResultUtils.success(userContentPushService.pageFailedPushes("feishu", keyword, retryCount, pageNum, pageSize));
     }
 
     /**
