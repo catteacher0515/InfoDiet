@@ -29,4 +29,9 @@ public class InfoDietProperties {
      * YouTube 订阅源日流程 cron 表达式
      */
     private String youtubeSourceDailyCron = "0 30 9 * * ?";
+
+    /**
+     * 推送队列名称
+     */
+    private String pushQueueName = "info_diet_push_queue";
 }
