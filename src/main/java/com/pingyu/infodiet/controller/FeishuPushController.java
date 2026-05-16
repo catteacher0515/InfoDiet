@@ -33,4 +33,12 @@ public class FeishuPushController {
     public BaseResponse<FeishuPushService.PushResult> pushUserContentItemsToFeishu() {
         return ResultUtils.success(feishuPushService.pushUserContentItemsToFeishu());
     }
+
+    /**
+     * 手动推送今日日报到飞书
+     */
+    @PostMapping("/digest/today")
+    public BaseResponse<FeishuPushService.PushResult> pushTodayDigestToFeishu() {
+        return ResultUtils.success(feishuPushService.pushTodayDigestToFeishu());
+    }
 }

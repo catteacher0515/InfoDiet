@@ -33,6 +33,11 @@ public interface FeishuPushService {
     boolean pushSingleUserContentItemToFeishu(Long pushId);
 
     /**
+     * 推送今日日报到飞书
+     */
+    PushResult pushTodayDigestToFeishu();
+
+    /**
      * 批量更新推送状态
      */
     boolean markItemsAsPushed(List<Long> itemIds);

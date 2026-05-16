@@ -1,9 +1,14 @@
 package com.pingyu.infodiet.service;
 
+import com.lark.oapi.Client;
 import com.pingyu.infodiet.config.FeishuBaseProperties;
 import com.pingyu.infodiet.exception.BusinessException;
+import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
+import com.pingyu.infodiet.model.dto.content.DailyDigestDTO;
+import com.pingyu.infodiet.model.dto.content.DailyDigestSectionDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
+import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.impl.FeishuPushServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -177,11 +182,58 @@ class FeishuPushServiceTest {
         );
     }
 
+    @Test
+    void pushTodayDigestToFeishuShouldSendDigestMessageToEnabledFeishuUsers() {
+        DailyDigestService dailyDigestService = Mockito.mock(DailyDigestService.class);
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+
+        when(dailyDigestService.generateTodayDigest()).thenReturn(DailyDigestDTO.builder()
+                .digestTitle("AI 日报 · 2026-05-16")
+                .totalClusterCount(2)
+                .totalItemCount(3)
+                .summary("今日共筛出 2 条精选事件。")
+                .sections(List.of(
+                        DailyDigestSectionDTO.builder()
+                                .sectionTitle("仓库 / 项目")
+                                .clusters(List.of(
+                                        ContentEventClusterDTO.builder()
+                                                .clusterTitle("OpenAI releases GPT-5.5")
+                                                .clusterScore(92)
+                                                .clusterSize(2)
+                                                .build()
+                                ))
+                                .build()
+                ))
+                .build());
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(
+                UserProfile.builder().id(1L).pushChannel("feishu").feishuUserId("ou_1").status(1).build(),
+                UserProfile.builder().id(2L).pushChannel("telegram").feishuUserId("ou_2").status(1).build(),
+                UserProfile.builder().id(3L).pushChannel("feishu").feishuUserId("ou_3").status(1).build()
+        ));
+
+        TestableFeishuPushService service = new TestableFeishuPushService();
+        ReflectionTestUtils.setField(service, "dailyDigestService", dailyDigestService);
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        service.messageResults.add(true);
+        service.messageResults.add(false);
+
+        FeishuPushService.PushResult result = service.pushTodayDigestToFeishu();
+
+        assertEquals(2, result.getTotalCount());
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(1, result.getFailedCount());
+        assertEquals(2, service.sentMessages.size());
+        assertEquals("ou_1", service.sentMessages.get(0).receiveId());
+        assertEquals("ou_3", service.sentMessages.get(1).receiveId());
+    }
+
     private static class TestableFeishuPushService extends FeishuPushServiceImpl {
 
         private final List<ContentItem> pendingItems = new ArrayList<>();
         private final List<UserContentPush> pendingUserPushItems = new ArrayList<>();
         private final List<FeishuPushServiceImpl.PushAttemptResult> pushResults = new ArrayList<>();
+        private final List<Boolean> messageResults = new ArrayList<>();
+        private final List<SentMessage> sentMessages = new ArrayList<>();
         private LocalDateTime fixedNow = LocalDateTime.now();
 
         private TestableFeishuPushService() {
@@ -213,8 +265,17 @@ class FeishuPushServiceTest {
             return fixedNow;
         }
 
+        @Override
+        protected boolean sendTextMessage(Client client, String receiveId, String content) {
+            sentMessages.add(new SentMessage(receiveId, content));
+            return messageResults.removeFirst();
+        }
+
         private Map<String, Object> buildFields(ContentItem contentItem) {
             return buildFeishuRecordFields(contentItem);
+        }
+
+        private record SentMessage(String receiveId, String content) {
         }
     }
 }
