@@ -83,6 +83,24 @@ public class ContentItem implements Serializable {
     private String authorUrl;
 
     /**
+     * 信源档案 ID
+     */
+    @Column("sourceProfileId")
+    private Long sourceProfileId;
+
+    /**
+     * 信源分类
+     */
+    @Column("sourceCategory")
+    private String sourceCategory;
+
+    /**
+     * 信源等级
+     */
+    @Column("sourceTier")
+    private String sourceTier;
+
+    /**
      * 项目语言
      */
     private String language;

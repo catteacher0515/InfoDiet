@@ -62,6 +62,21 @@ public class UnifiedContentItemDTO {
     private String authorUrl;
 
     /**
+     * 信源档案 ID
+     */
+    private Long sourceProfileId;
+
+    /**
+     * 信源分类
+     */
+    private String sourceCategory;
+
+    /**
+     * 信源等级
+     */
+    private String sourceTier;
+
+    /**
      * 平台主指标值
      */
     private Integer primaryMetricValue;

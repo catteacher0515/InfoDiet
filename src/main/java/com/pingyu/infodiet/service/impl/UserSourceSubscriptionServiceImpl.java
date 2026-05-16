@@ -5,7 +5,10 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.pingyu.infodiet.mapper.UserSourceSubscriptionMapper;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
+import com.pingyu.infodiet.model.entity.SourceProfile;
+import com.pingyu.infodiet.service.SourceProfileService;
 import com.pingyu.infodiet.service.UserSourceSubscriptionService;
+import jakarta.annotation.Resource;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,9 @@ public class UserSourceSubscriptionServiceImpl
         extends ServiceImpl<UserSourceSubscriptionMapper, UserSourceSubscription>
         implements UserSourceSubscriptionService {
 
+    @Resource
+    private SourceProfileService sourceProfileService;
+
     /**
      * 添加订阅源
      */
@@ -32,6 +38,10 @@ public class UserSourceSubscriptionServiceImpl
         userSourceSubscription.setPlatform(normalize(userSourceSubscription.getPlatform()));
         userSourceSubscription.setSourceType(normalize(userSourceSubscription.getSourceType()));
         userSourceSubscription.setSourceValue(StrUtil.trim(userSourceSubscription.getSourceValue()));
+        SourceProfile sourceProfile = sourceProfileService.resolveOrCreateBySubscription(userSourceSubscription);
+        if (sourceProfile != null) {
+            userSourceSubscription.setSourceProfileId(sourceProfile.getId());
+        }
         if (userSourceSubscription.getStatus() == null) {
             userSourceSubscription.setStatus(1);
         }
@@ -61,6 +71,17 @@ public class UserSourceSubscriptionServiceImpl
     public List<UserSourceSubscription> listEnabledSourceSubscriptions() {
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("status", 1);
+        return this.list(queryWrapper);
+    }
+
+    /**
+     * 查询当前用户订阅源列表
+     */
+    @Override
+    public List<UserSourceSubscription> listSourceSubscriptionsByUserId(Long userId) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("userId", userId)
+                .orderBy("createTime", false);
         return this.list(queryWrapper);
     }
 

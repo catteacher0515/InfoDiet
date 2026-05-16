@@ -6,6 +6,7 @@ import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.SourceProfile;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,12 +29,22 @@ public interface ContentItemService extends IService<ContentItem> {
     ContentItem convertGithubTrendingItem(GithubTrendingItemDTO dto);
 
     /**
+     * 将 GitHub Trending 抓取结果转换为带信源信息的内容项
+     */
+    ContentItem convertGithubTrendingItem(GithubTrendingItemDTO dto, SourceProfile sourceProfile);
+
+    /**
      * 将 YouTube 抓取结果转换为内容项
      *
      * @param dto YouTube 抓取结果
      * @return 内容项
      */
     ContentItem convertYoutubeVideoItem(YoutubeVideoItemDTO dto);
+
+    /**
+     * 将 YouTube 抓取结果转换为带信源信息的内容项
+     */
+    ContentItem convertYoutubeVideoItem(YoutubeVideoItemDTO dto, SourceProfile sourceProfile);
 
     /**
      * 批量保存 GitHub Trending 抓取结果

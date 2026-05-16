@@ -59,8 +59,8 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         return WorkspaceSubscriptionsVO.builder()
                 .keywords(userKeywordSubscriptionService.listKeywordsByUserId(userId))
                 .rules(userSubscriptionRuleService.listEnabledRulesByUserId(userId))
-                .sources(userSourceSubscriptionService.listEnabledSourceSubscriptions().stream()
-                        .filter(item -> userId.equals(item.getUserId()))
+                .sources(userSourceSubscriptionService.listSourceSubscriptionsByUserId(userId).stream()
+                        .filter(item -> item.getStatus() != null && item.getStatus() == 1)
                         .toList())
                 .build();
     }

@@ -26,6 +26,9 @@ class UnifiedContentItemServiceTest {
                 .sourceId("openai/openai-java")
                 .title("openai-java")
                 .authorName("openai")
+                .sourceProfileId(1L)
+                .sourceCategory("official")
+                .sourceTier("T1")
                 .starCount(1500)
                 .todayStarCount(200)
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
@@ -39,6 +42,9 @@ class UnifiedContentItemServiceTest {
         assertEquals(200, dto.getSecondaryMetricValue());
         assertEquals("todayStars", dto.getSecondaryMetricLabel());
         assertEquals("openai-java#openai", dto.getDedupKey());
+        assertEquals(1L, dto.getSourceProfileId());
+        assertEquals("official", dto.getSourceCategory());
+        assertEquals("T1", dto.getSourceTier());
     }
 
     @Test

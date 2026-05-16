@@ -10,8 +10,11 @@ import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.SourceProfile;
 import com.pingyu.infodiet.model.enums.ContentPlatformEnum;
 import com.pingyu.infodiet.service.ContentItemService;
+import com.pingyu.infodiet.service.SourceProfileService;
+import jakarta.annotation.Resource;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -34,11 +37,23 @@ import java.util.Map;
 @Service
 public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, ContentItem> implements ContentItemService {
 
+    @Resource
+    private SourceProfileService sourceProfileService;
+
     /**
      * 将 DTO 转换为 ContentItem
      */
     @Override
     public ContentItem convertGithubTrendingItem(GithubTrendingItemDTO dto) {
+        SourceProfile sourceProfile = resolveGithubSourceProfile(dto);
+        return convertGithubTrendingItem(dto, sourceProfile);
+    }
+
+    /**
+     * 将 DTO 转换为带信源信息的 ContentItem
+     */
+    @Override
+    public ContentItem convertGithubTrendingItem(GithubTrendingItemDTO dto, SourceProfile sourceProfile) {
         LocalDateTime now = now();
         return ContentItem.builder()
                 .platform(ContentPlatformEnum.GITHUB.getValue())
@@ -48,6 +63,9 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .contentUrl(dto.getRepoUrl())
                 .authorName(dto.getAuthorName())
                 .authorUrl(dto.getAuthorUrl())
+                .sourceProfileId(sourceProfile == null ? null : sourceProfile.getId())
+                .sourceCategory(resolveSourceCategory(sourceProfile))
+                .sourceTier(resolveSourceTier(sourceProfile))
                 .language(dto.getLanguage())
                 .starCount(dto.getStarCount())
                 .todayStarCount(dto.getTodayStarCount())
@@ -63,6 +81,15 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      */
     @Override
     public ContentItem convertYoutubeVideoItem(YoutubeVideoItemDTO dto) {
+        SourceProfile sourceProfile = resolveYoutubeSourceProfile(dto);
+        return convertYoutubeVideoItem(dto, sourceProfile);
+    }
+
+    /**
+     * 将 YouTube DTO 转换为带信源信息的 ContentItem
+     */
+    @Override
+    public ContentItem convertYoutubeVideoItem(YoutubeVideoItemDTO dto, SourceProfile sourceProfile) {
         LocalDateTime now = now();
         return ContentItem.builder()
                 .platform(ContentPlatformEnum.YOUTUBE.getValue())
@@ -73,6 +100,9 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .contentUrl(dto.getVideoUrl())
                 .authorName(dto.getAuthorName())
                 .authorUrl(dto.getAuthorUrl())
+                .sourceProfileId(sourceProfile == null ? null : sourceProfile.getId())
+                .sourceCategory(resolveSourceCategory(sourceProfile))
+                .sourceTier(resolveSourceTier(sourceProfile))
                 .viewCount(0)
                 .publishTime(dto.getPublishTime())
                 .keywordMatched(0)
@@ -207,6 +237,9 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .contentUrl(contentItem.getContentUrl())
                 .authorName(contentItem.getAuthorName())
                 .authorUrl(contentItem.getAuthorUrl())
+                .sourceProfileId(contentItem.getSourceProfileId())
+                .sourceCategory(contentItem.getSourceCategory())
+                .sourceTier(contentItem.getSourceTier())
                 .primaryMetricValue(resolvePrimaryMetricValue(contentItem))
                 .primaryMetricLabel(resolvePrimaryMetricLabel(contentItem))
                 .secondaryMetricValue(resolveSecondaryMetricValue(contentItem))
@@ -251,6 +284,43 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      */
     protected LocalDateTime now() {
         return LocalDateTime.now();
+    }
+
+    /**
+     * 解析 GitHub 信源档案
+     */
+    protected SourceProfile resolveGithubSourceProfile(GithubTrendingItemDTO dto) {
+        if (dto == null || sourceProfileService == null) {
+            return null;
+        }
+        String authorName = StrUtil.trim(dto.getAuthorName());
+        String authorUrl = StrUtil.trim(dto.getAuthorUrl());
+        if (StrUtil.isBlank(authorName)) {
+            authorName = extractGithubAuthor(dto.getRepoFullName());
+        }
+        if (StrUtil.isBlank(authorUrl) && StrUtil.isNotBlank(authorName)) {
+            authorUrl = "https://github.com/" + authorName;
+        }
+        if (StrUtil.isBlank(authorName)) {
+            return null;
+        }
+        return sourceProfileService.resolveOrCreateByContent("github", "author", authorName, authorName, authorUrl);
+    }
+
+    /**
+     * 解析 YouTube 信源档案
+     */
+    protected SourceProfile resolveYoutubeSourceProfile(YoutubeVideoItemDTO dto) {
+        if (dto == null || sourceProfileService == null || StrUtil.isBlank(dto.getChannelId())) {
+            return null;
+        }
+        return sourceProfileService.resolveOrCreateByContent(
+                "youtube",
+                "channel",
+                dto.getChannelId(),
+                dto.getAuthorName(),
+                dto.getAuthorUrl()
+        );
     }
 
     /**
@@ -320,6 +390,35 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
             return defaultInt(contentItem.getTodayStarCount());
         }
         return 0;
+    }
+
+    /**
+     * 解析信源分类
+     */
+    protected String resolveSourceCategory(SourceProfile sourceProfile) {
+        return sourceProfile == null || StrUtil.isBlank(sourceProfile.getSourceCategory())
+                ? "normal"
+                : sourceProfile.getSourceCategory();
+    }
+
+    /**
+     * 解析信源等级
+     */
+    protected String resolveSourceTier(SourceProfile sourceProfile) {
+        return sourceProfile == null || StrUtil.isBlank(sourceProfile.getSourceTier())
+                ? "T2"
+                : sourceProfile.getSourceTier();
+    }
+
+    /**
+     * 提取 GitHub 作者名
+     */
+    protected String extractGithubAuthor(String repoFullName) {
+        String normalizedValue = StrUtil.trim(repoFullName);
+        if (StrUtil.isBlank(normalizedValue) || !normalizedValue.contains("/")) {
+            return null;
+        }
+        return StrUtil.subBefore(normalizedValue, "/", false);
     }
 
     /**

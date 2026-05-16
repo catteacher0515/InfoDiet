@@ -2,8 +2,11 @@ package com.pingyu.infodiet.service;
 
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.SourceProfile;
 import com.pingyu.infodiet.service.impl.ContentItemServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -18,6 +21,8 @@ class ContentItemServiceTest {
     @Test
     void convertGithubTrendingItemShouldMapFieldsAndFillSystemDefaults() {
         ContentItemServiceImpl service = new ContentItemServiceImpl();
+        SourceProfileService sourceProfileService = Mockito.mock(SourceProfileService.class);
+        ReflectionTestUtils.setField(service, "sourceProfileService", sourceProfileService);
 
         GithubTrendingItemDTO dto = new GithubTrendingItemDTO();
         dto.setRepoFullName("openai/openai-java");
@@ -29,6 +34,17 @@ class ContentItemServiceTest {
         dto.setLanguage("Java");
         dto.setStarCount(1234);
         dto.setTodayStarCount(345);
+        SourceProfile sourceProfile = SourceProfile.builder()
+                .id(100L)
+                .platform("github")
+                .profileType("author")
+                .sourceKey("openai")
+                .sourceCategory("official")
+                .sourceTier("T1")
+                .build();
+        Mockito.when(sourceProfileService.resolveOrCreateByContent(
+                "github", "author", "openai", "openai", "https://github.com/openai"
+        )).thenReturn(sourceProfile);
 
         ContentItem item = service.convertGithubTrendingItem(dto);
 
@@ -39,6 +55,9 @@ class ContentItemServiceTest {
         assertEquals("https://github.com/openai/openai-java", item.getContentUrl());
         assertEquals("openai", item.getAuthorName());
         assertEquals("https://github.com/openai", item.getAuthorUrl());
+        assertEquals(100L, item.getSourceProfileId());
+        assertEquals("official", item.getSourceCategory());
+        assertEquals("T1", item.getSourceTier());
         assertEquals("Java", item.getLanguage());
         assertEquals(1234, item.getStarCount());
         assertEquals(345, item.getTodayStarCount());

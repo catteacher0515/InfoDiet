@@ -24,4 +24,9 @@ public interface UserSourceSubscriptionService extends IService<UserSourceSubscr
      * 查询启用订阅源列表
      */
     List<UserSourceSubscription> listEnabledSourceSubscriptions();
+
+    /**
+     * 查询当前用户订阅源列表
+     */
+    List<UserSourceSubscription> listSourceSubscriptionsByUserId(Long userId);
 }

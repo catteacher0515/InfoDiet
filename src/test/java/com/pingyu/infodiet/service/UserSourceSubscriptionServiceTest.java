@@ -1,8 +1,11 @@
 package com.pingyu.infodiet.service;
 
+import com.pingyu.infodiet.model.entity.SourceProfile;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
 import com.pingyu.infodiet.service.impl.UserSourceSubscriptionServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 
@@ -17,6 +20,10 @@ class UserSourceSubscriptionServiceTest {
     @Test
     void addSourceSubscriptionShouldCreateEnabledSubscription() {
         InMemoryUserSourceSubscriptionService service = new InMemoryUserSourceSubscriptionService();
+        SourceProfileService sourceProfileService = Mockito.mock(SourceProfileService.class);
+        ReflectionTestUtils.setField(service, "sourceProfileService", sourceProfileService);
+        Mockito.when(sourceProfileService.resolveOrCreateBySubscription(Mockito.any(UserSourceSubscription.class)))
+                .thenReturn(SourceProfile.builder().id(300L).sourceTier("T1").sourceCategory("official").build());
 
         boolean result = service.addSourceSubscription(UserSourceSubscription.builder()
                 .userId(1L)
@@ -30,6 +37,7 @@ class UserSourceSubscriptionServiceTest {
         assertEquals("youtube", service.items.getFirst().getPlatform());
         assertEquals("channel", service.items.getFirst().getSourceType());
         assertEquals("UC123456", service.items.getFirst().getSourceValue());
+        assertEquals(300L, service.items.getFirst().getSourceProfileId());
         assertEquals(1, service.items.getFirst().getStatus());
     }
 
@@ -43,6 +51,18 @@ class UserSourceSubscriptionServiceTest {
 
         assertEquals(1, result.size());
         assertEquals("youtube", result.getFirst().getPlatform());
+    }
+
+    @Test
+    void listSourceSubscriptionsByUserIdShouldReturnCurrentUserItems() {
+        InMemoryUserSourceSubscriptionService service = new InMemoryUserSourceSubscriptionService();
+        service.items.add(UserSourceSubscription.builder().id(1L).userId(1L).platform("youtube").sourceType("channel").sourceValue("UC123").status(1).build());
+        service.items.add(UserSourceSubscription.builder().id(2L).userId(2L).platform("github").sourceType("author").sourceValue("openai").status(1).build());
+
+        List<UserSourceSubscription> result = service.listSourceSubscriptionsByUserId(1L);
+
+        assertEquals(1, result.size());
+        assertEquals(1L, result.getFirst().getUserId());
     }
 
     @Test
@@ -72,8 +92,20 @@ class UserSourceSubscriptionServiceTest {
 
         @Override
         public List<UserSourceSubscription> list(com.mybatisflex.core.query.QueryWrapper queryWrapper) {
+            return items;
+        }
+
+        @Override
+        public List<UserSourceSubscription> listEnabledSourceSubscriptions() {
             return items.stream()
                     .filter(item -> item.getStatus() != null && item.getStatus() == 1)
+                    .toList();
+        }
+
+        @Override
+        public List<UserSourceSubscription> listSourceSubscriptionsByUserId(Long userId) {
+            return items.stream()
+                    .filter(item -> userId.equals(item.getUserId()))
                     .toList();
         }
     }

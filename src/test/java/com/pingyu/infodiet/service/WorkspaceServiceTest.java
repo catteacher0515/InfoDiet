@@ -35,9 +35,9 @@ class WorkspaceServiceTest {
         when(userSubscriptionRuleService.listEnabledRulesByUserId(1L)).thenReturn(List.of(
                 UserSubscriptionRule.builder().id(1L).ruleType("author").ruleValue("google").ruleWeight(5).build()
         ));
-        when(userSourceSubscriptionService.listEnabledSourceSubscriptions()).thenReturn(List.of(
-                UserSourceSubscription.builder().id(1L).userId(1L).platform("youtube").sourceType("channel").sourceValue("UC100").build(),
-                UserSourceSubscription.builder().id(2L).userId(2L).platform("github").sourceType("author").sourceValue("openai").build()
+        when(userSourceSubscriptionService.listSourceSubscriptionsByUserId(1L)).thenReturn(List.of(
+                UserSourceSubscription.builder().id(1L).userId(1L).platform("youtube").sourceType("channel").sourceValue("UC100").status(1).build(),
+                UserSourceSubscription.builder().id(2L).userId(1L).platform("github").sourceType("author").sourceValue("openai").status(0).build()
         ));
 
         ReflectionTestUtils.setField(service, "userKeywordSubscriptionService", userKeywordSubscriptionService);

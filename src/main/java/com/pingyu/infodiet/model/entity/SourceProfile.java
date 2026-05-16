@@ -15,14 +15,14 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 用户订阅源表 实体类。
+ * 信源档案表 实体类。
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("user_source_subscription")
-public class UserSourceSubscription implements Serializable {
+@Table("source_profile")
+public class SourceProfile implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -34,33 +34,45 @@ public class UserSourceSubscription implements Serializable {
     private Long id;
 
     /**
-     * 用户 ID
-     */
-    @Column("userId")
-    private Long userId;
-
-    /**
      * 平台
      */
     private String platform;
 
     /**
-     * 订阅源类型
+     * 档案类型
      */
-    @Column("sourceType")
-    private String sourceType;
+    @Column("profileType")
+    private String profileType;
 
     /**
-     * 订阅源值
+     * 信源唯一键
      */
-    @Column("sourceValue")
-    private String sourceValue;
+    @Column("sourceKey")
+    private String sourceKey;
 
     /**
-     * 关联信源档案 ID
+     * 信源名称
      */
-    @Column("sourceProfileId")
-    private Long sourceProfileId;
+    @Column("sourceName")
+    private String sourceName;
+
+    /**
+     * 信源链接
+     */
+    @Column("sourceUrl")
+    private String sourceUrl;
+
+    /**
+     * 信源分类
+     */
+    @Column("sourceCategory")
+    private String sourceCategory;
+
+    /**
+     * 信源等级
+     */
+    @Column("sourceTier")
+    private String sourceTier;
 
     /**
      * 状态 0-禁用 1-启用

@@ -8,6 +8,7 @@ import com.pingyu.infodiet.model.entity.AlertRecord;
 import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.SourceProfile;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserKeywordSubscription;
 import com.pingyu.infodiet.model.entity.UserProfile;
@@ -45,6 +46,9 @@ class ModelScaffoldTest {
         assertEquals(String.class, ContentItem.class.getDeclaredField("extraData").getType());
         assertEquals(String.class, ContentItem.class.getDeclaredField("contentType").getType());
         assertEquals(Integer.class, ContentItem.class.getDeclaredField("viewCount").getType());
+        assertEquals(Long.class, ContentItem.class.getDeclaredField("sourceProfileId").getType());
+        assertEquals(String.class, ContentItem.class.getDeclaredField("sourceCategory").getType());
+        assertEquals(String.class, ContentItem.class.getDeclaredField("sourceTier").getType());
     }
 
     @Test
@@ -212,6 +216,29 @@ class ModelScaffoldTest {
         assertEquals(String.class, UserSourceSubscription.class.getDeclaredField("platform").getType());
         assertEquals(String.class, UserSourceSubscription.class.getDeclaredField("sourceType").getType());
         assertEquals(String.class, UserSourceSubscription.class.getDeclaredField("sourceValue").getType());
+        assertEquals(Long.class, UserSourceSubscription.class.getDeclaredField("sourceProfileId").getType());
         assertEquals(Integer.class, UserSourceSubscription.class.getDeclaredField("status").getType());
+    }
+
+    @Test
+    void sourceProfileShouldBeMyBatisFlexEntityForSourceProfileTable() throws NoSuchFieldException {
+        Table table = SourceProfile.class.getAnnotation(Table.class);
+        assertNotNull(table);
+        assertEquals("source_profile", table.value());
+        assertTrue(Serializable.class.isAssignableFrom(SourceProfile.class));
+
+        Field idField = SourceProfile.class.getDeclaredField("id");
+        Id id = idField.getAnnotation(Id.class);
+        assertNotNull(id);
+        assertEquals(KeyType.Generator, id.keyType());
+
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("platform").getType());
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("profileType").getType());
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("sourceKey").getType());
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("sourceName").getType());
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("sourceUrl").getType());
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("sourceCategory").getType());
+        assertEquals(String.class, SourceProfile.class.getDeclaredField("sourceTier").getType());
+        assertEquals(Integer.class, SourceProfile.class.getDeclaredField("status").getType());
     }
 }

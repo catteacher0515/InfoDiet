@@ -5,9 +5,11 @@ import cn.hutool.core.util.StrUtil;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.model.dto.youtube.YoutubeVideoItemDTO;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
+import com.pingyu.infodiet.model.entity.SourceProfile;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.GithubTrendingService;
 import com.pingyu.infodiet.service.SourceSubscriptionCrawlService;
+import com.pingyu.infodiet.service.SourceProfileService;
 import com.pingyu.infodiet.service.UserSourceSubscriptionService;
 import com.pingyu.infodiet.service.YoutubeCrawlService;
 import jakarta.annotation.Resource;
@@ -36,6 +38,9 @@ public class SourceSubscriptionCrawlServiceImpl implements SourceSubscriptionCra
     @Resource
     private ContentItemService contentItemService;
 
+    @Resource
+    private SourceProfileService sourceProfileService;
+
     /**
      * 抓取 YouTube 频道订阅源
      */
@@ -56,6 +61,7 @@ public class SourceSubscriptionCrawlServiceImpl implements SourceSubscriptionCra
 
         List<YoutubeVideoItemDTO> allItems = new ArrayList<>();
         for (UserSourceSubscription subscription : youtubeChannelSubscriptions) {
+            bindSourceProfileId(subscription);
             List<YoutubeVideoItemDTO> dtoList = youtubeCrawlService
                     .crawlYoutubeVideos(subscription.getSourceValue());
             if (CollUtil.isNotEmpty(dtoList)) {
@@ -92,6 +98,7 @@ public class SourceSubscriptionCrawlServiceImpl implements SourceSubscriptionCra
 
         List<GithubTrendingItemDTO> allItems = new ArrayList<>();
         for (UserSourceSubscription subscription : githubSubscriptions) {
+            bindSourceProfileId(subscription);
             if (isGithubRepoSubscription(subscription)) {
                 GithubTrendingItemDTO dto = githubTrendingService.crawlGitHubRepo(subscription.getSourceValue());
                 if (dto != null) {
@@ -200,5 +207,18 @@ public class SourceSubscriptionCrawlServiceImpl implements SourceSubscriptionCra
             itemMap.putIfAbsent(StrUtil.trim(item.getRepoFullName()), item);
         }
         return new ArrayList<>(itemMap.values());
+    }
+
+    /**
+     * 补齐订阅源关联信源档案
+     */
+    protected void bindSourceProfileId(UserSourceSubscription subscription) {
+        if (subscription == null || subscription.getSourceProfileId() != null || sourceProfileService == null) {
+            return;
+        }
+        SourceProfile sourceProfile = sourceProfileService.resolveOrCreateBySubscription(subscription);
+        if (sourceProfile != null) {
+            subscription.setSourceProfileId(sourceProfile.getId());
+        }
     }
 }
