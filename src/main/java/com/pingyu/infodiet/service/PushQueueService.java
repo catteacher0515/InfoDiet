@@ -1,5 +1,7 @@
 package com.pingyu.infodiet.service;
 
+import java.io.Serializable;
+
 /**
  * 推送消息队列服务
  */
@@ -14,7 +16,7 @@ public interface PushQueueService {
     /**
      * 推送消息
      */
-    record PushMessage(Long pushId, Long userId, Long contentItemId, String pushChannel) {
+    record PushMessage(Long pushId, Long userId, Long contentItemId, String pushChannel) implements Serializable {
     }
 
     /**
