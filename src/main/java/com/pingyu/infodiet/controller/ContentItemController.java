@@ -3,10 +3,12 @@ package com.pingyu.infodiet.controller;
 import com.mybatisflex.core.paginate.Page;
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.common.ResultUtils;
+import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.service.ContentClusterService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
 import com.pingyu.infodiet.service.ContentScoringService;
@@ -43,6 +45,9 @@ public class ContentItemController {
 
     @Resource
     private ContentSelectionService contentSelectionService;
+
+    @Resource
+    private ContentClusterService contentClusterService;
 
     /**
      * 保存内容抓取表。
@@ -157,6 +162,14 @@ public class ContentItemController {
     @GetMapping("list/featured")
     public BaseResponse<List<UnifiedContentItemDTO>> listFeaturedContentItems() {
         return ResultUtils.success(contentSelectionService.listFeaturedContentItems());
+    }
+
+    /**
+     * 查询精选事件簇列表
+     */
+    @GetMapping("list/featured/clusters")
+    public BaseResponse<List<ContentEventClusterDTO>> listFeaturedClusters() {
+        return ResultUtils.success(contentClusterService.listFeaturedClusters());
     }
 
 }

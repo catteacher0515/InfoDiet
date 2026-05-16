@@ -1,9 +1,11 @@
 package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
+import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
+import com.pingyu.infodiet.service.ContentClusterService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
 import com.pingyu.infodiet.service.ContentScoringService;
@@ -126,5 +128,27 @@ class ContentItemControllerTest {
         assertEquals(0, response.getCode());
         assertEquals(1, response.getData().size());
         assertEquals(88, response.getData().getFirst().getQualityScore());
+    }
+
+    @Test
+    void listFeaturedClustersShouldReturnClusteredFeaturedList() {
+        ContentClusterService contentClusterService = Mockito.mock(ContentClusterService.class);
+        when(contentClusterService.listFeaturedClusters()).thenReturn(List.of(
+                ContentEventClusterDTO.builder()
+                        .clusterKey("cluster-1")
+                        .clusterTitle("OpenAI releases GPT-5.5")
+                        .clusterScore(90)
+                        .clusterSize(2)
+                        .build()
+        ));
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "contentClusterService", contentClusterService);
+
+        BaseResponse<List<ContentEventClusterDTO>> response = controller.listFeaturedClusters();
+
+        assertEquals(0, response.getCode());
+        assertEquals(1, response.getData().size());
+        assertEquals(2, response.getData().getFirst().getClusterSize());
     }
 }
