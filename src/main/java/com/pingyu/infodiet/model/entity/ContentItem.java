@@ -130,6 +130,18 @@ public class ContentItem implements Serializable {
     private Integer keywordMatched;
 
     /**
+     * 预筛状态 0-待预筛 1-通过 2-过滤
+     */
+    @Column("preFilterStatus")
+    private Integer preFilterStatus;
+
+    /**
+     * 预筛结果说明
+     */
+    @Column("preFilterReason")
+    private String preFilterReason;
+
+    /**
      * 推送状态 0-未推送 1-已推送
      */
     @Column("pushStatus")

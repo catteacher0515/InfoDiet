@@ -77,6 +77,16 @@ public class UnifiedContentItemDTO {
     private String sourceTier;
 
     /**
+     * 预筛状态
+     */
+    private Integer preFilterStatus;
+
+    /**
+     * 预筛结果说明
+     */
+    private String preFilterReason;
+
+    /**
      * 平台主指标值
      */
     private Integer primaryMetricValue;

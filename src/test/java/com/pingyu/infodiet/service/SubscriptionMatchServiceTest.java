@@ -44,10 +44,10 @@ class SubscriptionMatchServiceTest {
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
 
         service.contentItems = List.of(
-                ContentItem.builder().id(101L).title("agent workflow").description("build with gemini").authorName("Other").build(),
-                ContentItem.builder().id(102L).title("spring boot").description("java tutorial").authorName("Other").build(),
-                ContentItem.builder().id(103L).title("Gemini API update").description("latest release").authorName("Google for Developers").build(),
-                ContentItem.builder().id(104L).title("design note").description("no keyword").authorName("Other").build()
+                ContentItem.builder().id(101L).title("agent workflow").description("build with gemini").authorName("Other").preFilterStatus(1).build(),
+                ContentItem.builder().id(102L).title("spring boot").description("java tutorial").authorName("Other").preFilterStatus(1).build(),
+                ContentItem.builder().id(103L).title("Gemini API update").description("latest release").authorName("Google for Developers").preFilterStatus(1).build(),
+                ContentItem.builder().id(104L).title("design note").description("no keyword").authorName("Other").preFilterStatus(1).build()
         );
 
         Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
@@ -98,8 +98,8 @@ class SubscriptionMatchServiceTest {
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
 
         service.contentItems = List.of(
-                ContentItem.builder().id(101L).title("agent workflow").description("general guide").build(),
-                ContentItem.builder().id(102L).title("agent for finance").description("finance automation").build()
+                ContentItem.builder().id(101L).title("agent workflow").description("general guide").preFilterStatus(1).build(),
+                ContentItem.builder().id(102L).title("agent for finance").description("finance automation").preFilterStatus(1).build()
         );
 
         Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
@@ -133,6 +133,7 @@ class SubscriptionMatchServiceTest {
                         .sourceId("vercel-labs/open-agents")
                         .title("open-agents")
                         .authorName("vercel-labs")
+                        .preFilterStatus(1)
                         .build(),
                 ContentItem.builder()
                         .id(202L)
@@ -141,6 +142,7 @@ class SubscriptionMatchServiceTest {
                         .title("Gemini update")
                         .authorName("Google for Developers")
                         .authorUrl("https://www.youtube.com/channel/UC_x5XG1OV2P6uZZ5FSM9Ttw")
+                        .preFilterStatus(1)
                         .build(),
                 ContentItem.builder()
                         .id(203L)
@@ -148,6 +150,7 @@ class SubscriptionMatchServiceTest {
                         .sourceId("other/repo")
                         .title("other repo")
                         .authorName("other")
+                        .preFilterStatus(1)
                         .build()
         );
 
@@ -175,8 +178,8 @@ class SubscriptionMatchServiceTest {
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
 
         service.contentItems = List.of(
-                ContentItem.builder().id(301L).title("agent workflow").description("match").build(),
-                ContentItem.builder().id(302L).title("agent skills").description("match").build()
+                ContentItem.builder().id(301L).title("agent workflow").description("match").preFilterStatus(1).build(),
+                ContentItem.builder().id(302L).title("agent skills").description("match").preFilterStatus(1).build()
         );
         service.userPushes = List.of(
                 UserContentPush.builder().userId(1L).contentItemId(301L).pushStatus(1).build()
@@ -212,6 +215,7 @@ class SubscriptionMatchServiceTest {
                         .title("Building agents")
                         .description("agent workflow")
                         .authorName("Google for Developers")
+                        .preFilterStatus(1)
                         .build()
         );
 
@@ -248,6 +252,7 @@ class SubscriptionMatchServiceTest {
                 .title("open agents")
                 .description("agent workflow")
                 .authorName("vercel")
+                .preFilterStatus(1)
                 .build();
         ContentItem duplicateNewItem = ContentItem.builder()
                 .id(502L)
@@ -256,6 +261,7 @@ class SubscriptionMatchServiceTest {
                 .title("open agents")
                 .description("agent workflow")
                 .authorName("vercel")
+                .preFilterStatus(1)
                 .build();
 
         service.unifiedCandidates = List.of(
@@ -293,6 +299,7 @@ class SubscriptionMatchServiceTest {
                 .title("open agents")
                 .description("agent workflow")
                 .authorName("vercel")
+                .preFilterStatus(1)
                 .build();
         ContentItem duplicateYoutubeItem = ContentItem.builder()
                 .id(602L)
@@ -301,6 +308,7 @@ class SubscriptionMatchServiceTest {
                 .title("open agents")
                 .description("agent workflow")
                 .authorName("vercel")
+                .preFilterStatus(1)
                 .build();
 
         service.contentItems = List.of(duplicateYoutubeItem);
@@ -320,6 +328,34 @@ class SubscriptionMatchServiceTest {
         Cacheable cacheable = method.getAnnotation(Cacheable.class);
 
         assertEquals("matchEnabledUsersWithDetails", cacheable.cacheNames()[0]);
+    }
+
+    @Test
+    void matchEnabledUsersShouldIgnoreFilteredContent() {
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        UserSubscriptionRuleService userSubscriptionRuleService = Mockito.mock(UserSubscriptionRuleService.class);
+        ContentItemService contentItemService = new com.pingyu.infodiet.service.impl.ContentItemServiceImpl();
+
+        UserProfile user = UserProfile.builder().id(1L).nickname("pingyu").status(1).build();
+
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(user));
+        when(userSubscriptionRuleService.listEnabledRulesByUserId(1L)).thenReturn(List.of(
+                UserSubscriptionRule.builder().userId(1L).ruleType("keyword_include").ruleValue("agent").ruleWeight(3).status(1).build()
+        ));
+
+        TestableSubscriptionMatchService service = new TestableSubscriptionMatchService();
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "userSubscriptionRuleService", userSubscriptionRuleService);
+        ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
+
+        service.contentItems = List.of(
+                ContentItem.builder().id(701L).title("agent workflow").description("match").preFilterStatus(1).build(),
+                ContentItem.builder().id(702L).title("agent vlog").description("match").preFilterStatus(2).build()
+        );
+
+        Map<Long, List<ContentItem>> result = service.matchEnabledUsers();
+
+        assertEquals(List.of(701L), result.get(1L).stream().map(ContentItem::getId).toList());
     }
 
     private static class TestableSubscriptionMatchService extends SubscriptionMatchServiceImpl {

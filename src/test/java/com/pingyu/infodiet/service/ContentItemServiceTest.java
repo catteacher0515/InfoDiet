@@ -62,6 +62,7 @@ class ContentItemServiceTest {
         assertEquals(1234, item.getStarCount());
         assertEquals(345, item.getTodayStarCount());
         assertEquals(0, item.getKeywordMatched());
+        assertEquals(0, item.getPreFilterStatus());
         assertEquals(0, item.getPushStatus());
         assertEquals(Date.valueOf(LocalDate.now()), item.getCrawlDate());
         assertNotNull(item.getCrawlTime());

@@ -8,6 +8,7 @@ import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.service.ContentItemService;
+import com.pingyu.infodiet.service.ContentPreFilterService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +32,9 @@ public class ContentItemController {
 
     @Resource
     private ContentItemService contentItemService;
+
+    @Resource
+    private ContentPreFilterService contentPreFilterService;
 
     /**
      * 保存内容抓取表。
@@ -105,6 +109,14 @@ public class ContentItemController {
             @RequestBody ContentItemKeywordFilterRequest request
     ) {
         return ResultUtils.success(contentItemService.filterByKeywords(request.getKeywords()));
+    }
+
+    /**
+     * 执行内容预筛
+     */
+    @PostMapping("filter/prefilter")
+    public BaseResponse<ContentItemService.PreFilterResult> runPreFilter() {
+        return ResultUtils.success(contentPreFilterService.runSystemPreFilter());
     }
 
     /**

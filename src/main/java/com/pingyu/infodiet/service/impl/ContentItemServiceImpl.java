@@ -70,6 +70,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .starCount(dto.getStarCount())
                 .todayStarCount(dto.getTodayStarCount())
                 .keywordMatched(0)
+                .preFilterStatus(0)
                 .pushStatus(0)
                 .crawlDate(Date.valueOf(now.toLocalDate()))
                 .crawlTime(now)
@@ -106,6 +107,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .viewCount(0)
                 .publishTime(dto.getPublishTime())
                 .keywordMatched(0)
+                .preFilterStatus(0)
                 .pushStatus(0)
                 .crawlDate(Date.valueOf(now.toLocalDate()))
                 .crawlTime(now)
@@ -240,6 +242,8 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .sourceProfileId(contentItem.getSourceProfileId())
                 .sourceCategory(contentItem.getSourceCategory())
                 .sourceTier(contentItem.getSourceTier())
+                .preFilterStatus(contentItem.getPreFilterStatus())
+                .preFilterReason(contentItem.getPreFilterReason())
                 .primaryMetricValue(resolvePrimaryMetricValue(contentItem))
                 .primaryMetricLabel(resolvePrimaryMetricLabel(contentItem))
                 .secondaryMetricValue(resolveSecondaryMetricValue(contentItem))
@@ -273,6 +277,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
             return List.of();
         }
         List<UnifiedContentItemDTO> unifiedItems = contentItems.stream()
+                .filter(this::isPreFilterPassed)
                 .map(this::convertToUnifiedContentItem)
                 .filter(item -> item != null && StrUtil.isNotBlank(item.getDedupKey()))
                 .toList();
@@ -339,8 +344,16 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      */
     protected List<ContentItem> listUnmatchedItems() {
         QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("preFilterStatus", 1)
                 .eq("keywordMatched", 0);
         return this.mapper.selectListByQuery(queryWrapper);
+    }
+
+    /**
+     * 判断内容是否通过预筛
+     */
+    protected boolean isPreFilterPassed(ContentItem contentItem) {
+        return contentItem != null && contentItem.getPreFilterStatus() != null && contentItem.getPreFilterStatus() == 1;
     }
 
     /**

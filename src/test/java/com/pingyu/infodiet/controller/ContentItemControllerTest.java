@@ -5,6 +5,7 @@ import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.service.ContentItemService;
+import com.pingyu.infodiet.service.ContentPreFilterService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -34,6 +35,24 @@ class ContentItemControllerTest {
         assertEquals(10, response.getData().getTotalCount());
         assertEquals(4, response.getData().getMatchedCount());
         assertEquals(6, response.getData().getUnmatchedCount());
+    }
+
+    @Test
+    void runPreFilterShouldReturnPreFilterSummary() {
+        ContentPreFilterService contentPreFilterService = Mockito.mock(ContentPreFilterService.class);
+        ContentItemService.PreFilterResult preFilterResult = new ContentItemService.PreFilterResult(10, 6, 4, 0);
+        when(contentPreFilterService.runSystemPreFilter()).thenReturn(preFilterResult);
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "contentPreFilterService", contentPreFilterService);
+
+        BaseResponse<ContentItemService.PreFilterResult> response = controller.runPreFilter();
+
+        assertEquals(0, response.getCode());
+        assertEquals(10, response.getData().getTotalCount());
+        assertEquals(6, response.getData().getPassedCount());
+        assertEquals(4, response.getData().getFilteredCount());
+        assertEquals(0, response.getData().getSkippedCount());
     }
 
     @Test

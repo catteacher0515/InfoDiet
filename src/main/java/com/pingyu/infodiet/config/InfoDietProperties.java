@@ -26,6 +26,11 @@ public class InfoDietProperties {
     private String githubDailyCron = "0 0 9 * * ?";
 
     /**
+     * 内容预筛排除关键词
+     */
+    private List<String> preFilterExcludeKeywords = new ArrayList<>();
+
+    /**
      * YouTube 订阅源日流程 cron 表达式
      */
     private String youtubeSourceDailyCron = "0 30 9 * * ?";

@@ -6,6 +6,7 @@ import com.pingyu.infodiet.model.entity.CrawlTaskLog;
 import com.pingyu.infodiet.service.AlertRecordService;
 import com.pingyu.infodiet.service.CrawlTaskLogService;
 import com.pingyu.infodiet.service.ContentItemService;
+import com.pingyu.infodiet.service.ContentPreFilterService;
 import com.pingyu.infodiet.service.GithubTrendingService;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
 import com.pingyu.infodiet.service.PushQueueService;
@@ -28,6 +29,9 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
 
     @Resource
     private ContentItemService contentItemService;
+
+    @Resource
+    private ContentPreFilterService contentPreFilterService;
 
     @Resource
     private UserContentPushService userContentPushService;
@@ -56,6 +60,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         try {
             List<GithubTrendingItemDTO> dtoList = githubTrendingService.crawlGitHubTrending();
             ContentItemService.SaveResult saveResult = contentItemService.saveGithubTrendingItems(dtoList);
+            contentPreFilterService.runSystemPreFilter();
             ContentItemService.KeywordFilterResult filterResult = contentItemService
                     .filterByKeywords(infoDietProperties.getKeywords());
             userContentPushService.createPendingPushes();
@@ -129,6 +134,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         try {
             SourceSubscriptionCrawlService.CrawlResult crawlResult = sourceSubscriptionCrawlService
                     .crawlAllSourceSubscriptions();
+            contentPreFilterService.runSystemPreFilter();
             UserContentPushService.CreatePushResult createPushResult = userContentPushService.createPendingPushes();
             PushQueueService.EnqueuePushResult enqueuePushResult = pushQueueService.enqueuePendingPushes("feishu");
             YoutubeSourceScheduleResult result = new YoutubeSourceScheduleResult(

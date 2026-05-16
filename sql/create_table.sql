@@ -17,6 +17,8 @@ create table if not exists content_item
     todayStarCount int                                    default 0 not null comment '今日新增 Star 数',
     viewCount      int                                    default 0 not null comment '播放量',
     keywordMatched tinyint                                default 0 not null comment '是否命中关键词',
+    preFilterStatus tinyint                               default 0 not null comment '预筛状态 0-待预筛 1-通过 2-过滤',
+    preFilterReason varchar(512)                          null comment '预筛结果说明',
     pushStatus     tinyint                                default 0 not null comment '推送状态 0-未推送 1-已推送',
     pushTime       datetime                               null comment '推送时间',
     extraData      json                                   null comment '扩展字段',
@@ -28,7 +30,8 @@ create table if not exists content_item
     isDelete       tinyint  default 0                     not null comment '是否删除',
     unique key uk_platform_source_date (platform, sourceId, crawlDate),
     index idx_platform_crawlDate (platform, crawlDate),
-    index idx_keywordMatched_pushStatus (keywordMatched, pushStatus)
+    index idx_keywordMatched_pushStatus (keywordMatched, pushStatus),
+    index idx_preFilterStatus_pushStatus (preFilterStatus, pushStatus)
     ) comment '内容抓取表' collate = utf8mb4_unicode_ci;
 
 

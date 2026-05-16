@@ -135,4 +135,30 @@ public interface ContentItemService extends IService<ContentItem> {
          */
         private int unmatchedCount;
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class PreFilterResult {
+
+        /**
+         * 本次处理总数
+         */
+        private int totalCount;
+
+        /**
+         * 通过数量
+         */
+        private int passedCount;
+
+        /**
+         * 过滤数量
+         */
+        private int filteredCount;
+
+        /**
+         * 跳过数量
+         */
+        private int skippedCount;
+    }
 }

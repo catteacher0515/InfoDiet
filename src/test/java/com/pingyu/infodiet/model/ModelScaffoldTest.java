@@ -49,6 +49,8 @@ class ModelScaffoldTest {
         assertEquals(Long.class, ContentItem.class.getDeclaredField("sourceProfileId").getType());
         assertEquals(String.class, ContentItem.class.getDeclaredField("sourceCategory").getType());
         assertEquals(String.class, ContentItem.class.getDeclaredField("sourceTier").getType());
+        assertEquals(Integer.class, ContentItem.class.getDeclaredField("preFilterStatus").getType());
+        assertEquals(String.class, ContentItem.class.getDeclaredField("preFilterReason").getType());
     }
 
     @Test

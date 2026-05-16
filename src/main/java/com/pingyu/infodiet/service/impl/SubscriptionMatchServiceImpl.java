@@ -85,6 +85,9 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
             List<UserContentPush> pushedItems = listPushedContentByUserId(userProfile.getId());
             List<MatchDetail> matchedItems = new ArrayList<>();
             for (ContentItem contentItem : contentItems) {
+                if (!isCandidateContentItem(contentItem)) {
+                    continue;
+                }
                 if (hasBeenPushed(contentItem, pushedItems)) {
                     continue;
                 }
@@ -306,6 +309,7 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
         }
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("isDelete", 0)
+                .eq("preFilterStatus", 1)
                 .orderBy("id", false);
         return contentItemService.list(queryWrapper);
     }
@@ -315,6 +319,13 @@ public class SubscriptionMatchServiceImpl implements SubscriptionMatchService {
      */
     protected List<UnifiedContentItemDTO> listUnifiedCandidateContentItems() {
         return contentItemService.listUnifiedContentItems();
+    }
+
+    /**
+     * 判断是否为可匹配候选内容
+     */
+    protected boolean isCandidateContentItem(ContentItem contentItem) {
+        return contentItem != null && contentItem.getPreFilterStatus() != null && contentItem.getPreFilterStatus() == 1;
     }
 
     /**
