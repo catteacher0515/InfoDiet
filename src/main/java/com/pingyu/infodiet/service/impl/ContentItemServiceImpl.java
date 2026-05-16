@@ -71,6 +71,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .todayStarCount(dto.getTodayStarCount())
                 .keywordMatched(0)
                 .preFilterStatus(0)
+                .qualityScore(0)
                 .pushStatus(0)
                 .crawlDate(Date.valueOf(now.toLocalDate()))
                 .crawlTime(now)
@@ -108,6 +109,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .publishTime(dto.getPublishTime())
                 .keywordMatched(0)
                 .preFilterStatus(0)
+                .qualityScore(0)
                 .pushStatus(0)
                 .crawlDate(Date.valueOf(now.toLocalDate()))
                 .crawlTime(now)
@@ -244,6 +246,8 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
                 .sourceTier(contentItem.getSourceTier())
                 .preFilterStatus(contentItem.getPreFilterStatus())
                 .preFilterReason(contentItem.getPreFilterReason())
+                .qualityScore(defaultInt(contentItem.getQualityScore()))
+                .qualityScoreReason(contentItem.getQualityScoreReason())
                 .primaryMetricValue(resolvePrimaryMetricValue(contentItem))
                 .primaryMetricLabel(resolvePrimaryMetricLabel(contentItem))
                 .secondaryMetricValue(resolveSecondaryMetricValue(contentItem))
@@ -269,7 +273,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
     @Override
     @Cacheable(
             cacheNames = "unifiedContentItems",
-            key = "T(java.util.Objects).toString(#request == null ? 'default' : #request.platform + '|' + #request.contentType + '|' + #request.sortBy + '|' + #request.limit)"
+            key = "T(java.util.Objects).toString(#request == null ? 'default' : #request.platform + '|' + #request.contentType + '|' + #request.sortBy + '|' + #request.limit + '|' + #request.minQualityScore)"
     )
     public List<UnifiedContentItemDTO> listUnifiedContentItems(UnifiedContentQueryRequest request) {
         List<ContentItem> contentItems = this.list(QueryWrapper.create().eq("isDelete", 0));
@@ -507,6 +511,7 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
         List<UnifiedContentItemDTO> filteredItems = items.stream()
                 .filter(item -> matchPlatform(item, safeRequest.getPlatform()))
                 .filter(item -> matchContentType(item, safeRequest.getContentType()))
+                .filter(item -> matchMinQualityScore(item, safeRequest.getMinQualityScore()))
                 .sorted(buildUnifiedSortComparator(safeRequest.getSortBy()))
                 .toList();
         Integer limit = safeRequest.getLimit();
@@ -521,19 +526,32 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      */
     protected int compareUnifiedItem(UnifiedContentItemDTO current, UnifiedContentItemDTO existing) {
         Comparator<UnifiedContentItemDTO> comparator = Comparator
-                .comparing(UnifiedContentItemDTO::getSortTime,
+                .comparing(UnifiedContentItemDTO::getQualityScore,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(UnifiedContentItemDTO::getSortTime,
                         Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(UnifiedContentItemDTO::getPrimaryMetricValue,
                         Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(UnifiedContentItemDTO::getId,
                         Comparator.nullsLast(Comparator.reverseOrder()));
-        return comparator.compare(existing, current);
+        return comparator.compare(current, existing);
     }
 
     /**
      * 统一内容排序器
      */
     protected Comparator<UnifiedContentItemDTO> buildUnifiedSortComparator(String sortBy) {
+        if (StrUtil.equalsIgnoreCase(StrUtil.trim(sortBy), "score")) {
+            return Comparator
+                    .comparing(UnifiedContentItemDTO::getQualityScore,
+                            Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(UnifiedContentItemDTO::getSortTime,
+                            Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(UnifiedContentItemDTO::getPrimaryMetricValue,
+                            Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(UnifiedContentItemDTO::getId,
+                            Comparator.nullsLast(Comparator.reverseOrder()));
+        }
         if (StrUtil.equalsIgnoreCase(StrUtil.trim(sortBy), "metric")) {
             return Comparator
                     .comparing(UnifiedContentItemDTO::getPrimaryMetricValue,
@@ -545,6 +563,8 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
         }
         return Comparator
                 .comparing(UnifiedContentItemDTO::getSortTime,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(UnifiedContentItemDTO::getQualityScore,
                         Comparator.nullsLast(Comparator.reverseOrder()))
                 .thenComparing(UnifiedContentItemDTO::getPrimaryMetricValue,
                         Comparator.nullsLast(Comparator.reverseOrder()))
@@ -564,6 +584,13 @@ public class ContentItemServiceImpl extends ServiceImpl<ContentItemMapper, Conte
      */
     protected boolean matchContentType(UnifiedContentItemDTO item, String contentType) {
         return StrUtil.isBlank(contentType) || StrUtil.equalsIgnoreCase(StrUtil.trim(item.getContentType()), StrUtil.trim(contentType));
+    }
+
+    /**
+     * 判断最低质量分是否匹配
+     */
+    protected boolean matchMinQualityScore(UnifiedContentItemDTO item, Integer minQualityScore) {
+        return minQualityScore == null || defaultInt(item.getQualityScore()) >= minQualityScore;
     }
 
     /**

@@ -87,6 +87,16 @@ public class UnifiedContentItemDTO {
     private String preFilterReason;
 
     /**
+     * 内容质量分
+     */
+    private Integer qualityScore;
+
+    /**
+     * 质量分说明
+     */
+    private String qualityScoreReason;
+
+    /**
      * 平台主指标值
      */
     private Integer primaryMetricValue;

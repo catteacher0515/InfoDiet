@@ -7,6 +7,7 @@ import com.pingyu.infodiet.service.AlertRecordService;
 import com.pingyu.infodiet.service.CrawlTaskLogService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
+import com.pingyu.infodiet.service.ContentScoringService;
 import com.pingyu.infodiet.service.GithubTrendingService;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
 import com.pingyu.infodiet.service.PushQueueService;
@@ -32,6 +33,9 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
 
     @Resource
     private ContentPreFilterService contentPreFilterService;
+
+    @Resource
+    private ContentScoringService contentScoringService;
 
     @Resource
     private UserContentPushService userContentPushService;
@@ -61,6 +65,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
             List<GithubTrendingItemDTO> dtoList = githubTrendingService.crawlGitHubTrending();
             ContentItemService.SaveResult saveResult = contentItemService.saveGithubTrendingItems(dtoList);
             contentPreFilterService.runSystemPreFilter();
+            contentScoringService.runQualityScoring();
             ContentItemService.KeywordFilterResult filterResult = contentItemService
                     .filterByKeywords(infoDietProperties.getKeywords());
             userContentPushService.createPendingPushes();
@@ -104,6 +109,8 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         LocalDateTime startTime = now();
         try {
             SourceSubscriptionCrawlService.CrawlResult result = sourceSubscriptionCrawlService.crawlAllSourceSubscriptions();
+            contentPreFilterService.runSystemPreFilter();
+            contentScoringService.runQualityScoring();
             crawlTaskLogService.save(crawlTaskLogService.buildSuccessLog(
                     "youtube_source_crawl_flow",
                     "system",
@@ -135,6 +142,7 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
             SourceSubscriptionCrawlService.CrawlResult crawlResult = sourceSubscriptionCrawlService
                     .crawlAllSourceSubscriptions();
             contentPreFilterService.runSystemPreFilter();
+            contentScoringService.runQualityScoring();
             UserContentPushService.CreatePushResult createPushResult = userContentPushService.createPendingPushes();
             PushQueueService.EnqueuePushResult enqueuePushResult = pushQueueService.enqueuePendingPushes("feishu");
             YoutubeSourceScheduleResult result = new YoutubeSourceScheduleResult(

@@ -31,6 +31,11 @@ public class InfoDietProperties {
     private List<String> preFilterExcludeKeywords = new ArrayList<>();
 
     /**
+     * 精选最低质量分
+     */
+    private Integer featuredMinQualityScore = 70;
+
+    /**
      * YouTube 订阅源日流程 cron 表达式
      */
     private String youtubeSourceDailyCron = "0 30 9 * * ?";

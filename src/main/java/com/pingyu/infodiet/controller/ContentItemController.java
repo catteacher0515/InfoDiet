@@ -9,6 +9,8 @@ import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
+import com.pingyu.infodiet.service.ContentScoringService;
+import com.pingyu.infodiet.service.ContentSelectionService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +37,12 @@ public class ContentItemController {
 
     @Resource
     private ContentPreFilterService contentPreFilterService;
+
+    @Resource
+    private ContentScoringService contentScoringService;
+
+    @Resource
+    private ContentSelectionService contentSelectionService;
 
     /**
      * 保存内容抓取表。
@@ -120,6 +128,14 @@ public class ContentItemController {
     }
 
     /**
+     * 执行内容评分
+     */
+    @PostMapping("filter/score")
+    public BaseResponse<ContentItemService.QualityScoreResult> runQualityScoring() {
+        return ResultUtils.success(contentScoringService.runQualityScoring());
+    }
+
+    /**
      * 查询统一内容列表
      */
     @GetMapping("list/unified")
@@ -133,6 +149,14 @@ public class ContentItemController {
     @GetMapping("list/unified/query")
     public BaseResponse<List<UnifiedContentItemDTO>> listUnifiedContentItems(UnifiedContentQueryRequest request) {
         return ResultUtils.success(contentItemService.listUnifiedContentItems(request));
+    }
+
+    /**
+     * 查询精选内容列表
+     */
+    @GetMapping("list/featured")
+    public BaseResponse<List<UnifiedContentItemDTO>> listFeaturedContentItems() {
+        return ResultUtils.success(contentSelectionService.listFeaturedContentItems());
     }
 
 }

@@ -161,4 +161,25 @@ public interface ContentItemService extends IService<ContentItem> {
          */
         private int skippedCount;
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    class QualityScoreResult {
+
+        /**
+         * 本次处理总数
+         */
+        private int totalCount;
+
+        /**
+         * 成功评分数量
+         */
+        private int scoredCount;
+
+        /**
+         * 跳过数量
+         */
+        private int skippedCount;
+    }
 }

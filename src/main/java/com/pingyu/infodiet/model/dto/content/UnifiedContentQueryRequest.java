@@ -27,4 +27,9 @@ public class UnifiedContentQueryRequest {
      * 限制条数
      */
     private Integer limit;
+
+    /**
+     * 最低质量分
+     */
+    private Integer minQualityScore;
 }

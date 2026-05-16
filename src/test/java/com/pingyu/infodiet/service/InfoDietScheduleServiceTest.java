@@ -25,6 +25,7 @@ class InfoDietScheduleServiceTest {
         GithubTrendingService githubTrendingService = Mockito.mock(GithubTrendingService.class);
         ContentItemService contentItemService = Mockito.mock(ContentItemService.class);
         ContentPreFilterService contentPreFilterService = Mockito.mock(ContentPreFilterService.class);
+        ContentScoringService contentScoringService = Mockito.mock(ContentScoringService.class);
         PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
@@ -43,6 +44,8 @@ class InfoDietScheduleServiceTest {
                 .thenReturn(new ContentItemService.SaveResult(2, 1, 1));
         when(contentPreFilterService.runSystemPreFilter())
                 .thenReturn(new ContentItemService.PreFilterResult(2, 2, 0, 0));
+        when(contentScoringService.runQualityScoring())
+                .thenReturn(new ContentItemService.QualityScoreResult(2, 2, 0));
         when(contentItemService.filterByKeywords(List.of("agent", "workflow")))
                 .thenReturn(new ContentItemService.KeywordFilterResult(2, 1, 1));
         when(userContentPushService.createPendingPushes())
@@ -57,6 +60,7 @@ class InfoDietScheduleServiceTest {
         ReflectionTestUtils.setField(service, "githubTrendingService", githubTrendingService);
         ReflectionTestUtils.setField(service, "contentItemService", contentItemService);
         ReflectionTestUtils.setField(service, "contentPreFilterService", contentPreFilterService);
+        ReflectionTestUtils.setField(service, "contentScoringService", contentScoringService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
         ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
         ReflectionTestUtils.setField(service, "infoDietProperties", infoDietProperties);
@@ -76,6 +80,7 @@ class InfoDietScheduleServiceTest {
         verify(githubTrendingService).crawlGitHubTrending();
         verify(contentItemService).saveGithubTrendingItems(dtoList);
         verify(contentPreFilterService).runSystemPreFilter();
+        verify(contentScoringService).runQualityScoring();
         verify(contentItemService).filterByKeywords(List.of("agent", "workflow"));
         verify(userContentPushService).createPendingPushes();
         verify(pushQueueService).enqueuePendingPushes("feishu");
@@ -85,6 +90,8 @@ class InfoDietScheduleServiceTest {
     @Test
     void runDailyYoutubeSourceFlowShouldInvokeSourceSubscriptionCrawl() {
         SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
+        ContentPreFilterService contentPreFilterService = Mockito.mock(ContentPreFilterService.class);
+        ContentScoringService contentScoringService = Mockito.mock(ContentScoringService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
         AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
         when(crawlTaskLogService.buildSuccessLog(
@@ -93,9 +100,15 @@ class InfoDietScheduleServiceTest {
         )).thenReturn(CrawlTaskLog.builder().taskType("youtube_source_crawl_flow").taskStatus(1).build());
         when(sourceSubscriptionCrawlService.crawlAllSourceSubscriptions())
                 .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
+        when(contentPreFilterService.runSystemPreFilter())
+                .thenReturn(new ContentItemService.PreFilterResult(6, 4, 2, 0));
+        when(contentScoringService.runQualityScoring())
+                .thenReturn(new ContentItemService.QualityScoreResult(4, 4, 0));
 
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
+        ReflectionTestUtils.setField(service, "contentPreFilterService", contentPreFilterService);
+        ReflectionTestUtils.setField(service, "contentScoringService", contentScoringService);
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
         ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
 
@@ -106,6 +119,8 @@ class InfoDietScheduleServiceTest {
         assertEquals(4, result.getSavedCount());
         assertEquals(2, result.getSkippedCount());
         verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
+        verify(contentPreFilterService).runSystemPreFilter();
+        verify(contentScoringService).runQualityScoring();
         verify(crawlTaskLogService).save(any(CrawlTaskLog.class));
     }
 
@@ -113,6 +128,7 @@ class InfoDietScheduleServiceTest {
     void runDailyYoutubeSourcePushFlowShouldOrchestrateWholePipeline() {
         SourceSubscriptionCrawlService sourceSubscriptionCrawlService = Mockito.mock(SourceSubscriptionCrawlService.class);
         ContentPreFilterService contentPreFilterService = Mockito.mock(ContentPreFilterService.class);
+        ContentScoringService contentScoringService = Mockito.mock(ContentScoringService.class);
         UserContentPushService userContentPushService = Mockito.mock(UserContentPushService.class);
         PushQueueService pushQueueService = Mockito.mock(PushQueueService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
@@ -126,6 +142,8 @@ class InfoDietScheduleServiceTest {
                 .thenReturn(new SourceSubscriptionCrawlService.CrawlResult(2, 6, 4, 2));
         when(contentPreFilterService.runSystemPreFilter())
                 .thenReturn(new ContentItemService.PreFilterResult(6, 4, 2, 0));
+        when(contentScoringService.runQualityScoring())
+                .thenReturn(new ContentItemService.QualityScoreResult(4, 4, 0));
         when(userContentPushService.createPendingPushes())
                 .thenReturn(new UserContentPushService.CreatePushResult(5, 3, 2));
         when(pushQueueService.enqueuePendingPushes("feishu"))
@@ -134,6 +152,7 @@ class InfoDietScheduleServiceTest {
         InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
         ReflectionTestUtils.setField(service, "sourceSubscriptionCrawlService", sourceSubscriptionCrawlService);
         ReflectionTestUtils.setField(service, "contentPreFilterService", contentPreFilterService);
+        ReflectionTestUtils.setField(service, "contentScoringService", contentScoringService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
         ReflectionTestUtils.setField(service, "pushQueueService", pushQueueService);
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
@@ -152,6 +171,7 @@ class InfoDietScheduleServiceTest {
 
         verify(sourceSubscriptionCrawlService).crawlAllSourceSubscriptions();
         verify(contentPreFilterService).runSystemPreFilter();
+        verify(contentScoringService).runQualityScoring();
         verify(userContentPushService).createPendingPushes();
         verify(pushQueueService).enqueuePendingPushes("feishu");
         verify(crawlTaskLogService).save(any(CrawlTaskLog.class));

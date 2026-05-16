@@ -142,6 +142,18 @@ public class ContentItem implements Serializable {
     private String preFilterReason;
 
     /**
+     * 内容质量分
+     */
+    @Column("qualityScore")
+    private Integer qualityScore;
+
+    /**
+     * 质量分说明
+     */
+    @Column("qualityScoreReason")
+    private String qualityScoreReason;
+
+    /**
      * 推送状态 0-未推送 1-已推送
      */
     @Column("pushStatus")

@@ -29,6 +29,8 @@ class UnifiedContentItemServiceTest {
                 .sourceProfileId(1L)
                 .sourceCategory("official")
                 .sourceTier("T1")
+                .preFilterStatus(1)
+                .qualityScore(88)
                 .starCount(1500)
                 .todayStarCount(200)
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
@@ -45,6 +47,7 @@ class UnifiedContentItemServiceTest {
         assertEquals(1L, dto.getSourceProfileId());
         assertEquals("official", dto.getSourceCategory());
         assertEquals("T1", dto.getSourceTier());
+        assertEquals(88, dto.getQualityScore());
     }
 
     @Test
@@ -57,6 +60,8 @@ class UnifiedContentItemServiceTest {
                 .title("Build InfoDiet with Java")
                 .contentType("video")
                 .authorName("Pingyu Channel")
+                .preFilterStatus(1)
+                .qualityScore(62)
                 .viewCount(3000)
                 .publishTime(LocalDateTime.of(2026, 5, 10, 8, 0))
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
@@ -81,6 +86,8 @@ class UnifiedContentItemServiceTest {
                 .sourceId("openai/openai-java")
                 .title("openai-java")
                 .authorName("openai")
+                .preFilterStatus(1)
+                .qualityScore(70)
                 .starCount(1500)
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
                 .build());
@@ -90,6 +97,8 @@ class UnifiedContentItemServiceTest {
                 .sourceId("video-1")
                 .title("openai-java")
                 .authorName("openai")
+                .preFilterStatus(1)
+                .qualityScore(75)
                 .viewCount(3000)
                 .publishTime(LocalDateTime.of(2026, 5, 10, 8, 0))
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 9, 0))
@@ -101,6 +110,8 @@ class UnifiedContentItemServiceTest {
                 .sourceId("video-2")
                 .title("Build InfoDiet with Java")
                 .authorName("Pingyu Channel")
+                .preFilterStatus(1)
+                .qualityScore(68)
                 .viewCount(2000)
                 .publishTime(LocalDateTime.of(2026, 5, 11, 11, 0))
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 11, 30))
@@ -123,6 +134,8 @@ class UnifiedContentItemServiceTest {
                 .sourceId("openai/openai-java")
                 .title("openai-java")
                 .authorName("openai")
+                .preFilterStatus(1)
+                .qualityScore(66)
                 .starCount(1500)
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
                 .build());
@@ -132,6 +145,8 @@ class UnifiedContentItemServiceTest {
                 .sourceId("spring-projects/spring-ai")
                 .title("spring-ai")
                 .authorName("spring-projects")
+                .preFilterStatus(1)
+                .qualityScore(82)
                 .starCount(2000)
                 .crawlTime(LocalDateTime.of(2026, 5, 10, 10, 0))
                 .build());
@@ -142,6 +157,8 @@ class UnifiedContentItemServiceTest {
                 .title("Build InfoDiet with Java")
                 .authorName("Pingyu Channel")
                 .contentType("video")
+                .preFilterStatus(1)
+                .qualityScore(90)
                 .viewCount(5000)
                 .publishTime(LocalDateTime.of(2026, 5, 11, 12, 0))
                 .crawlTime(LocalDateTime.of(2026, 5, 11, 12, 30))
@@ -159,6 +176,54 @@ class UnifiedContentItemServiceTest {
         assertEquals(22L, result.getFirst().getId());
         assertEquals("github", result.getFirst().getPlatform());
         assertEquals("repository", result.getFirst().getContentType());
+    }
+
+    @Test
+    void listUnifiedContentItemsShouldSupportScoreSortAndMinQualityScore() {
+        InMemoryUnifiedContentItemService service = new InMemoryUnifiedContentItemService();
+        service.items.add(ContentItem.builder()
+                .id(31L)
+                .platform("github")
+                .sourceId("openai/openai-java")
+                .title("openai-java")
+                .authorName("openai")
+                .preFilterStatus(1)
+                .qualityScore(72)
+                .starCount(1500)
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 10, 0))
+                .build());
+        service.items.add(ContentItem.builder()
+                .id(32L)
+                .platform("youtube")
+                .sourceId("video-4")
+                .title("Build agents")
+                .authorName("Pingyu Channel")
+                .contentType("video")
+                .preFilterStatus(1)
+                .qualityScore(88)
+                .viewCount(8000)
+                .publishTime(LocalDateTime.of(2026, 5, 11, 12, 0))
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 12, 30))
+                .build());
+        service.items.add(ContentItem.builder()
+                .id(33L)
+                .platform("github")
+                .sourceId("other/repo")
+                .title("other repo")
+                .authorName("other")
+                .preFilterStatus(1)
+                .qualityScore(55)
+                .starCount(300)
+                .crawlTime(LocalDateTime.of(2026, 5, 11, 9, 0))
+                .build());
+
+        UnifiedContentQueryRequest request = new UnifiedContentQueryRequest();
+        request.setSortBy("score");
+        request.setMinQualityScore(60);
+
+        List<UnifiedContentItemDTO> result = service.listUnifiedContentItems(request);
+
+        assertEquals(List.of(32L, 31L), result.stream().map(UnifiedContentItemDTO::getId).toList());
     }
 
     @Test
