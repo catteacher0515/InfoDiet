@@ -3,6 +3,7 @@ package com.pingyu.infodiet.controller;
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
+import com.pingyu.infodiet.model.dto.content.DailyDigestDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.service.ContentClusterService;
@@ -10,6 +11,7 @@ import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
 import com.pingyu.infodiet.service.ContentScoringService;
 import com.pingyu.infodiet.service.ContentSelectionService;
+import com.pingyu.infodiet.service.DailyDigestService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -150,5 +152,25 @@ class ContentItemControllerTest {
         assertEquals(0, response.getCode());
         assertEquals(1, response.getData().size());
         assertEquals(2, response.getData().getFirst().getClusterSize());
+    }
+
+    @Test
+    void generateTodayDigestShouldReturnDigest() {
+        DailyDigestService dailyDigestService = Mockito.mock(DailyDigestService.class);
+        when(dailyDigestService.generateTodayDigest()).thenReturn(DailyDigestDTO.builder()
+                .digestTitle("AI 日报 · 2026-05-16")
+                .totalClusterCount(2)
+                .totalItemCount(3)
+                .summary("今日共筛出 2 条精选事件。")
+                .build());
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "dailyDigestService", dailyDigestService);
+
+        BaseResponse<DailyDigestDTO> response = controller.generateTodayDigest();
+
+        assertEquals(0, response.getCode());
+        assertEquals(2, response.getData().getTotalClusterCount());
+        assertEquals(3, response.getData().getTotalItemCount());
     }
 }

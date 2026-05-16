@@ -5,6 +5,7 @@ import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.common.ResultUtils;
 import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.ContentItemKeywordFilterRequest;
+import com.pingyu.infodiet.model.dto.content.DailyDigestDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentQueryRequest;
 import com.pingyu.infodiet.model.entity.ContentItem;
@@ -13,6 +14,7 @@ import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
 import com.pingyu.infodiet.service.ContentScoringService;
 import com.pingyu.infodiet.service.ContentSelectionService;
+import com.pingyu.infodiet.service.DailyDigestService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,6 +50,9 @@ public class ContentItemController {
 
     @Resource
     private ContentClusterService contentClusterService;
+
+    @Resource
+    private DailyDigestService dailyDigestService;
 
     /**
      * 保存内容抓取表。
@@ -170,6 +175,14 @@ public class ContentItemController {
     @GetMapping("list/featured/clusters")
     public BaseResponse<List<ContentEventClusterDTO>> listFeaturedClusters() {
         return ResultUtils.success(contentClusterService.listFeaturedClusters());
+    }
+
+    /**
+     * 生成 AI 日报
+     */
+    @GetMapping("digest/today")
+    public BaseResponse<DailyDigestDTO> generateTodayDigest() {
+        return ResultUtils.success(dailyDigestService.generateTodayDigest());
     }
 
 }
