@@ -1,9 +1,13 @@
 package com.pingyu.infodiet.service.impl;
 
+import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.pingyu.infodiet.exception.BusinessException;
+import com.pingyu.infodiet.exception.ErrorCode;
 import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
 import com.pingyu.infodiet.mapper.UserProfileMapper;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigRequest;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
@@ -86,6 +90,29 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
     }
 
     /**
+     * 更新用户推送配置
+     */
+    @Override
+    @CacheEvict(cacheNames = {"enabledUsers", "matchEnabledUsersWithDetails"}, allEntries = true)
+    public boolean updateUserPushConfig(Long userId, UserPushConfigRequest request) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户 ID 不能为空");
+        }
+        validatePushConfigRequest(request);
+        if (this.getById(userId) == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+        String trimmedFeishuUserId = StrUtil.trim(request.getFeishuUserId());
+        return this.updateChain()
+                .set("feishuUserId", StrUtil.isBlank(trimmedFeishuUserId) ? null : trimmedFeishuUserId)
+                .set("pushChannel", StrUtil.trim(request.getPushChannel()))
+                .set("dailyPushLimit", request.getDailyPushLimit())
+                .set("pushCooldownHours", request.getPushCooldownHours())
+                .where("id = ?", userId)
+                .update();
+    }
+
+    /**
      * 根据主键获取用户
      */
     @Override
@@ -149,5 +176,20 @@ public class UserProfileServiceImpl extends ServiceImpl<UserProfileMapper, UserP
                 .role(userProfile.getRole())
                 .status(userProfile.getStatus())
                 .build();
+    }
+
+    protected void validatePushConfigRequest(UserPushConfigRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "推送配置不能为空");
+        }
+        if (!StrUtil.equalsIgnoreCase(StrUtil.trim(request.getPushChannel()), "feishu")) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "仅支持 feishu 推送渠道");
+        }
+        if (request.getDailyPushLimit() == null || request.getDailyPushLimit() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "每日推送上限必须大于 0");
+        }
+        if (request.getPushCooldownHours() == null || request.getPushCooldownHours() < 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "推送冷却小时数不能小于 0");
+        }
     }
 }

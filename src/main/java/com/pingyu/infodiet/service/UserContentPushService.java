@@ -26,6 +26,11 @@ public interface UserContentPushService extends IService<UserContentPush> {
     List<UserContentPush> listEnqueueablePushesByChannel(String pushChannel);
 
     /**
+     * 将内容已不存在的待推送记录直接标记为失败终态
+     */
+    int markMissingContentPushesAsFailed(String pushChannel);
+
+    /**
      * 标记已入队
      */
     boolean markQueued(Long pushId);

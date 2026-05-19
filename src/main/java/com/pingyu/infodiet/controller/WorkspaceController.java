@@ -6,6 +6,8 @@ import com.pingyu.infodiet.common.ResultUtils;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.WorkspaceContentQueryRequest;
 import com.pingyu.infodiet.model.dto.user.UserKeywordSubscriptionRequest;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigRequest;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigVO;
 import com.pingyu.infodiet.model.dto.user.UserSubscriptionRuleRequest;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.dto.user.WorkspaceSubscriptionsVO;
@@ -41,11 +43,27 @@ public class WorkspaceController {
     }
 
     /**
+     * 查询我的推送配置
+     */
+    @GetMapping("/push-config/me")
+    public BaseResponse<UserPushConfigVO> getMyPushConfig() {
+        return ResultUtils.success(workspaceService.getMyPushConfig());
+    }
+
+    /**
      * 新增我的关键词
      */
     @PostMapping("/keywords")
     public BaseResponse<Boolean> addMyKeyword(@RequestBody UserKeywordSubscriptionRequest request) {
         return ResultUtils.success(workspaceService.addMyKeyword(request.getKeyword()));
+    }
+
+    /**
+     * 更新我的推送配置
+     */
+    @PostMapping("/push-config/me")
+    public BaseResponse<Boolean> updateMyPushConfig(@RequestBody UserPushConfigRequest request) {
+        return ResultUtils.success(workspaceService.updateMyPushConfig(request));
     }
 
     /**

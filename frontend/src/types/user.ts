@@ -14,3 +14,10 @@ export interface UserDetail extends UserListItem {
   createTime?: string
   updateTime?: string
 }
+
+export interface UserPushConfigPayload {
+  feishuUserId: string
+  pushChannel: string
+  dailyPushLimit: number
+  pushCooldownHours: number
+}

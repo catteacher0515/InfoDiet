@@ -24,4 +24,24 @@ public class OpsDashboardVO {
      * 失败推送数
      */
     private int failedPushCount;
+
+    /**
+     * 今日日报是否已生成
+     */
+    private Boolean todayDigestGenerated;
+
+    /**
+     * 今日日报推送成功数
+     */
+    private int todayDigestPushSuccessCount;
+
+    /**
+     * 今日日报推送失败数
+     */
+    private int todayDigestPushFailedCount;
+
+    /**
+     * 最近日报失败记录数
+     */
+    private int recentDigestFailedRecordCount;
 }

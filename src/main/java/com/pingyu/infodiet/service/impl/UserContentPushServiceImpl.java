@@ -128,8 +128,34 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                 .eq("queueStatus", 0);
         return this.list(queryWrapper).stream()
                 .filter(item -> item.getNextRetryTime() == null || !item.getNextRetryTime().isAfter(now))
+                .filter(item -> contentItemExists(item.getContentItemId()))
                 .sorted(Comparator.comparing(UserContentPush::getCreateTime, Comparator.nullsLast(LocalDateTime::compareTo)))
                 .toList();
+    }
+
+    /**
+     * 将内容已不存在的待推送记录直接标记为失败终态
+     */
+    @Override
+    public int markMissingContentPushesAsFailed(String pushChannel) {
+        if (StrUtil.isBlank(pushChannel)) {
+            return 0;
+        }
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("pushChannel", pushChannel.trim())
+                .eq("pushStatus", 0)
+                .eq("queueStatus", 0);
+        int affectedCount = 0;
+        for (UserContentPush item : this.list(queryWrapper)) {
+            if (contentItemExists(item.getContentItemId())) {
+                continue;
+            }
+            boolean updated = markMissingContentPushAsFailed(item.getId());
+            if (updated) {
+                affectedCount++;
+            }
+        }
+        return affectedCount;
     }
 
     /**
@@ -381,6 +407,28 @@ public class UserContentPushServiceImpl extends ServiceImpl<UserContentPushMappe
                 || String.valueOf(item.getUserId()).contains(safeKeyword)
                 || String.valueOf(item.getContentItemId()).contains(safeKeyword)
                 || StrUtil.containsIgnoreCase(StrUtil.blankToDefault(item.getFailReason(), ""), safeKeyword);
+    }
+
+    /**
+     * 判断待推送内容是否仍然存在，避免历史坏样本重新进入异步链路
+     */
+    protected boolean contentItemExists(Long contentItemId) {
+        return contentItemId != null && contentItemService.getById(contentItemId) != null;
+    }
+
+    /**
+     * 将单条缺失内容的待推送记录终态化
+     */
+    protected boolean markMissingContentPushAsFailed(Long pushId) {
+        return this.updateChain()
+                .set("pushStatus", 2)
+                .set("queueStatus", 3)
+                .set("failReason", "内容不存在")
+                .set("nextRetryTime", null)
+                .where("id = ?", pushId)
+                .and("pushStatus = ?", 0)
+                .and("queueStatus = ?", 0)
+                .update();
     }
 
     /**

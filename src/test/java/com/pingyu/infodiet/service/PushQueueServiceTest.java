@@ -44,6 +44,7 @@ class PushQueueServiceTest {
         assertEquals(2, result.enqueuedCount());
         assertEquals(0, result.skippedCount());
         verify(rabbitTemplate, times(2)).convertAndSend(eq("info_diet_push_queue"), any(PushQueueService.PushMessage.class));
+        verify(userContentPushService, times(1)).markMissingContentPushesAsFailed("feishu");
         verify(userContentPushService, times(1)).markQueued(1L);
         verify(userContentPushService, times(1)).markQueued(2L);
     }

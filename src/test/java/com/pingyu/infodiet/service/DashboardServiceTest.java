@@ -7,6 +7,8 @@ import com.pingyu.infodiet.model.dto.dashboard.OpsDashboardVO;
 import com.pingyu.infodiet.model.dto.dashboard.WorkspaceDashboardVO;
 import com.pingyu.infodiet.model.entity.AlertRecord;
 import com.pingyu.infodiet.model.entity.CrawlTaskLog;
+import com.pingyu.infodiet.model.entity.DailyDigestHistory;
+import com.pingyu.infodiet.model.entity.DailyDigestPushRecord;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserKeywordSubscription;
 import com.pingyu.infodiet.model.entity.UserProfile;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -104,6 +107,8 @@ class DashboardServiceTest {
         CrawlTaskLogService crawlTaskLogService = mock(CrawlTaskLogService.class);
         AlertRecordService alertRecordService = mock(AlertRecordService.class);
         UserContentPushService userContentPushService = mock(UserContentPushService.class);
+        DailyDigestHistoryService dailyDigestHistoryService = mock(DailyDigestHistoryService.class);
+        DailyDigestPushRecordService dailyDigestPushRecordService = mock(DailyDigestPushRecordService.class);
 
         when(crawlTaskLogService.listRecentLogs(10)).thenReturn(List.of(
                 CrawlTaskLog.builder().id(1L).build(),
@@ -117,10 +122,24 @@ class DashboardServiceTest {
                 UserContentPush.builder().id(2L).build(),
                 UserContentPush.builder().id(3L).build()
         ));
+        when(dailyDigestHistoryService.getByDigestDate(LocalDate.now())).thenReturn(
+                DailyDigestHistory.builder().id(100L).digestDate(LocalDate.now()).digestTitle("AI 日报").build()
+        );
+        when(dailyDigestPushRecordService.list()).thenReturn(List.of(
+                DailyDigestPushRecord.builder().id(1L).digestDate(LocalDate.now()).pushStatus(1).build(),
+                DailyDigestPushRecord.builder().id(2L).digestDate(LocalDate.now()).pushStatus(1).build(),
+                DailyDigestPushRecord.builder().id(3L).digestDate(LocalDate.now()).pushStatus(2).build(),
+                DailyDigestPushRecord.builder().id(4L).digestDate(LocalDate.now().minusDays(1)).pushStatus(2).build()
+        ));
+        when(dailyDigestPushRecordService.listRecentFailedRecords(5)).thenReturn(List.of(
+                DailyDigestPushRecord.builder().id(3L).pushStatus(2).failReason("forbidden").build()
+        ));
 
         ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
         ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
         ReflectionTestUtils.setField(service, "userContentPushService", userContentPushService);
+        ReflectionTestUtils.setField(service, "dailyDigestHistoryService", dailyDigestHistoryService);
+        ReflectionTestUtils.setField(service, "dailyDigestPushRecordService", dailyDigestPushRecordService);
         LoginUserContext.set(LoginUser.builder().userId(1L).username("admin").role("admin").build());
 
         OpsDashboardVO dashboard = service.getOpsDashboard();
@@ -128,5 +147,9 @@ class DashboardServiceTest {
         assertEquals(2, dashboard.getRecentTaskCount());
         assertEquals(1, dashboard.getPendingAlertCount());
         assertEquals(3, dashboard.getFailedPushCount());
+        assertEquals(true, dashboard.getTodayDigestGenerated());
+        assertEquals(2, dashboard.getTodayDigestPushSuccessCount());
+        assertEquals(1, dashboard.getTodayDigestPushFailedCount());
+        assertEquals(1, dashboard.getRecentDigestFailedRecordCount());
     }
 }

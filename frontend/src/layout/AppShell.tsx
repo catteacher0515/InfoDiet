@@ -16,6 +16,7 @@ const adminItems = [
 
 const opsItems = [
   { to: '/ops/dashboard', label: '运维概览' },
+  { to: '/ops/digest', label: '日报运营' },
   { to: '/ops/tasks', label: '任务日志' },
   { to: '/ops/push-failures', label: '失败推送' },
   { to: '/ops/alerts', label: '失败告警' },

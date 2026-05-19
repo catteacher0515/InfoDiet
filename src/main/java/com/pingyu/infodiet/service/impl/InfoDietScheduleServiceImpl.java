@@ -8,6 +8,7 @@ import com.pingyu.infodiet.service.CrawlTaskLogService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.ContentPreFilterService;
 import com.pingyu.infodiet.service.ContentScoringService;
+import com.pingyu.infodiet.service.FeishuPushService;
 import com.pingyu.infodiet.service.GithubTrendingService;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
 import com.pingyu.infodiet.service.PushQueueService;
@@ -48,6 +49,9 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
 
     @Resource
     private SourceSubscriptionCrawlService sourceSubscriptionCrawlService;
+
+    @Resource
+    private FeishuPushService feishuPushService;
 
     @Resource
     private CrawlTaskLogService crawlTaskLogService;
@@ -177,6 +181,35 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
     }
 
     /**
+     * 执行每日日报推送流程
+     */
+    @Override
+    public FeishuPushService.PushResult runDailyDigestPushFlow() {
+        LocalDateTime startTime = now();
+        try {
+            FeishuPushService.PushResult result = feishuPushService.pushTodayDigestToFeishu();
+            crawlTaskLogService.save(crawlTaskLogService.buildSuccessLog(
+                    "daily_digest_push_flow",
+                    "system",
+                    startTime,
+                    0,
+                    result.getTotalCount(),
+                    result.getSuccessCount(),
+                    result.getFailedCount(),
+                    0,
+                    0,
+                    0,
+                    0
+            ));
+            return result;
+        } catch (RuntimeException e) {
+            crawlTaskLogService.save(crawlTaskLogService.buildFailedLog("daily_digest_push_flow", "system", startTime, e));
+            createTaskFailedAlert(e);
+            throw e;
+        }
+    }
+
+    /**
      * 按任务类型重跑
      */
     @Override
@@ -189,6 +222,9 @@ public class InfoDietScheduleServiceImpl implements InfoDietScheduleService {
         }
         if ("youtube_source_push_flow".equals(taskType)) {
             return runDailyYoutubeSourcePushFlow();
+        }
+        if ("daily_digest_push_flow".equals(taskType)) {
+            return runDailyDigestPushFlow();
         }
         throw new IllegalArgumentException("不支持的任务类型: " + taskType);
     }

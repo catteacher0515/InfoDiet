@@ -17,8 +17,10 @@ import com.pingyu.infodiet.exception.ThrowUtils;
 import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.DailyDigestDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.DailyDigestPushRecord;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
+import com.pingyu.infodiet.service.DailyDigestPushRecordService;
 import com.pingyu.infodiet.service.AlertRecordService;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.DailyDigestService;
@@ -60,6 +62,9 @@ public class FeishuPushServiceImpl implements FeishuPushService {
 
     @Resource
     private UserProfileService userProfileService;
+
+    @Resource
+    private DailyDigestPushRecordService dailyDigestPushRecordService;
 
     /**
      * 查询待推送内容
@@ -180,16 +185,30 @@ public class FeishuPushServiceImpl implements FeishuPushService {
         }
         Client client = buildClient();
         String content = buildDigestTextContent(dailyDigest);
+        LocalDateTime pushTime = now();
+        List<UserProfile> pendingUsers = filterDigestUsersToPush(dailyDigest, targetUsers, "feishu");
+        if (CollUtil.isEmpty(pendingUsers)) {
+            return new PushResult(0, 0, 0);
+        }
         int successCount = 0;
         int failedCount = 0;
-        for (UserProfile userProfile : targetUsers) {
-            if (sendTextMessage(client, userProfile.getFeishuUserId(), content)) {
+        for (UserProfile userProfile : pendingUsers) {
+            boolean success = sendTextMessage(client, userProfile.getFeishuUserId(), content);
+            dailyDigestPushRecordService.saveOrUpdatePushRecord(
+                    dailyDigest,
+                    userProfile,
+                    "feishu",
+                    success,
+                    success ? null : "飞书日报推送失败",
+                    pushTime
+            );
+            if (success) {
                 successCount++;
             } else {
                 failedCount++;
             }
         }
-        return new PushResult(targetUsers.size(), successCount, failedCount);
+        return new PushResult(pendingUsers.size(), successCount, failedCount);
     }
 
     /**
@@ -332,6 +351,33 @@ public class FeishuPushServiceImpl implements FeishuPushService {
                 .filter(item -> StrUtil.equalsIgnoreCase(item.getPushChannel(), "feishu"))
                 .filter(item -> StrUtil.isNotBlank(item.getFeishuUserId()))
                 .toList();
+    }
+
+    /**
+     * 过滤本次需要推送日报的用户
+     */
+    protected List<UserProfile> filterDigestUsersToPush(DailyDigestDTO dailyDigest, List<UserProfile> targetUsers, String pushChannel) {
+        if (dailyDigest == null || dailyDigest.getDigestDate() == null || CollUtil.isEmpty(targetUsers)) {
+            return List.of();
+        }
+        return targetUsers.stream()
+                .filter(userProfile -> shouldPushDigestToUser(dailyDigest, userProfile, pushChannel))
+                .toList();
+    }
+
+    /**
+     * 判断是否需要向用户重复推送同一日报
+     */
+    protected boolean shouldPushDigestToUser(DailyDigestDTO dailyDigest, UserProfile userProfile, String pushChannel) {
+        if (dailyDigest == null || dailyDigest.getDigestDate() == null || userProfile == null || userProfile.getId() == null) {
+            return false;
+        }
+        DailyDigestPushRecord existing = dailyDigestPushRecordService.getByDigestDateAndUserIdAndPushChannel(
+                dailyDigest.getDigestDate(),
+                userProfile.getId(),
+                StrUtil.blankToDefault(pushChannel, "")
+        );
+        return existing == null || existing.getPushStatus() == null || existing.getPushStatus() != 1;
     }
 
     /**

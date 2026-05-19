@@ -6,8 +6,11 @@ import com.pingyu.infodiet.model.auth.LoginUserContext;
 import com.pingyu.infodiet.model.dto.dashboard.AdminDashboardVO;
 import com.pingyu.infodiet.model.dto.dashboard.OpsDashboardVO;
 import com.pingyu.infodiet.model.dto.dashboard.WorkspaceDashboardVO;
+import com.pingyu.infodiet.model.entity.DailyDigestPushRecord;
 import com.pingyu.infodiet.service.AlertRecordService;
 import com.pingyu.infodiet.service.CrawlTaskLogService;
+import com.pingyu.infodiet.service.DailyDigestHistoryService;
+import com.pingyu.infodiet.service.DailyDigestPushRecordService;
 import com.pingyu.infodiet.service.DashboardService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
@@ -15,6 +18,9 @@ import com.pingyu.infodiet.service.UserProfileService;
 import com.pingyu.infodiet.service.UserSourceSubscriptionService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 工作台概览服务实现
@@ -39,6 +45,12 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Resource
     private AlertRecordService alertRecordService;
+
+    @Resource
+    private DailyDigestHistoryService dailyDigestHistoryService;
+
+    @Resource
+    private DailyDigestPushRecordService dailyDigestPushRecordService;
 
     /**
      * 查询当前用户工作台概览
@@ -98,11 +110,31 @@ public class DashboardServiceImpl implements DashboardService {
         int recentTaskCount = crawlTaskLogService.listRecentLogs(10).size();
         int pendingAlertCount = alertRecordService.listPendingAlerts().size();
         int failedPushCount = userContentPushService.listFailedPushesByChannel("feishu").size();
+        LocalDate today = today();
+        boolean todayDigestGenerated = dailyDigestHistoryService.getByDigestDate(today) != null;
+        List<DailyDigestPushRecord> todayDigestPushRecords = dailyDigestPushRecordService.list().stream()
+                .filter(item -> today.equals(item.getDigestDate()))
+                .toList();
+        int todayDigestPushSuccessCount = (int) todayDigestPushRecords.stream()
+                .filter(item -> item.getPushStatus() != null && item.getPushStatus() == 1)
+                .count();
+        int todayDigestPushFailedCount = (int) todayDigestPushRecords.stream()
+                .filter(item -> item.getPushStatus() != null && item.getPushStatus() == 2)
+                .count();
+        int recentDigestFailedRecordCount = dailyDigestPushRecordService.listRecentFailedRecords(5).size();
         return OpsDashboardVO.builder()
                 .recentTaskCount(recentTaskCount)
                 .pendingAlertCount(pendingAlertCount)
                 .failedPushCount(failedPushCount)
+                .todayDigestGenerated(todayDigestGenerated)
+                .todayDigestPushSuccessCount(todayDigestPushSuccessCount)
+                .todayDigestPushFailedCount(todayDigestPushFailedCount)
+                .recentDigestFailedRecordCount(recentDigestFailedRecordCount)
                 .build();
+    }
+
+    protected LocalDate today() {
+        return LocalDate.now();
     }
 
     private void ensureAdmin() {

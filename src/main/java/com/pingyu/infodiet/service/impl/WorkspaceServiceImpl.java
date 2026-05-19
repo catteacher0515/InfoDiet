@@ -6,15 +6,19 @@ import com.pingyu.infodiet.exception.ErrorCode;
 import com.pingyu.infodiet.model.auth.LoginUserContext;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.WorkspaceContentQueryRequest;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigRequest;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigVO;
 import com.pingyu.infodiet.model.dto.user.WorkspaceSubscriptionsVO;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
+import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
 import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
 import com.pingyu.infodiet.service.ContentItemService;
 import com.pingyu.infodiet.service.SubscriptionMatchService;
 import com.pingyu.infodiet.service.UserContentPushService;
 import com.pingyu.infodiet.service.UserKeywordSubscriptionService;
+import com.pingyu.infodiet.service.UserProfileService;
 import com.pingyu.infodiet.service.UserSourceSubscriptionService;
 import com.pingyu.infodiet.service.UserSubscriptionRuleService;
 import com.pingyu.infodiet.service.WorkspaceService;
@@ -47,6 +51,9 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     @Resource
     private UserContentPushService userContentPushService;
 
+    @Resource
+    private UserProfileService userProfileService;
+
     /**
      * 查询当前用户订阅聚合信息
      */
@@ -66,12 +73,39 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     }
 
     /**
+     * 查询当前用户推送配置
+     */
+    @Override
+    public UserPushConfigVO getMyPushConfig() {
+        Long userId = requireLoginUserId();
+        UserProfile userProfile = userProfileService.getUserById(userId);
+        if (userProfile == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        }
+        return UserPushConfigVO.builder()
+                .feishuUserId(userProfile.getFeishuUserId())
+                .pushChannel(userProfile.getPushChannel())
+                .dailyPushLimit(userProfile.getDailyPushLimit())
+                .pushCooldownHours(userProfile.getPushCooldownHours())
+                .build();
+    }
+
+    /**
      * 新增当前用户关键词
      */
     @Override
     public boolean addMyKeyword(String keyword) {
         Long userId = requireLoginUserId();
         return userKeywordSubscriptionService.addKeyword(userId, keyword);
+    }
+
+    /**
+     * 更新当前用户推送配置
+     */
+    @Override
+    public boolean updateMyPushConfig(UserPushConfigRequest request) {
+        Long userId = requireLoginUserId();
+        return userProfileService.updateUserPushConfig(userId, request);
     }
 
     /**

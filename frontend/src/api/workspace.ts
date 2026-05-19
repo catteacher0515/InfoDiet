@@ -1,6 +1,7 @@
 import http from './http'
 import type { BaseResponse } from '../types/auth'
 import type {
+  UserPushConfig,
   WorkspaceContentItem,
   WorkspaceContentQuery,
   WorkspacePushItem,
@@ -9,6 +10,16 @@ import type {
 
 export async function fetchMySubscriptions() {
   const { data } = await http.get<BaseResponse<WorkspaceSubscriptions>>('/workspace/subscriptions/me')
+  return data
+}
+
+export async function fetchMyPushConfig() {
+  const { data } = await http.get<BaseResponse<UserPushConfig>>('/workspace/push-config/me')
+  return data
+}
+
+export async function updateMyPushConfig(payload: UserPushConfig) {
+  const { data } = await http.post<BaseResponse<boolean>>('/workspace/push-config/me', payload)
   return data
 }
 

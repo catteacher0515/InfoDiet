@@ -1,6 +1,7 @@
 package com.pingyu.infodiet.service;
 
 import com.pingyu.infodiet.service.SourceSubscriptionCrawlService.CrawlResult;
+import com.pingyu.infodiet.service.FeishuPushService.PushResult;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,6 +25,11 @@ public interface InfoDietScheduleService {
      * 执行每日 YouTube 订阅源推送流程
      */
     YoutubeSourceScheduleResult runDailyYoutubeSourcePushFlow();
+
+    /**
+     * 执行每日日报推送流程
+     */
+    PushResult runDailyDigestPushFlow();
 
     /**
      * 按任务类型重跑

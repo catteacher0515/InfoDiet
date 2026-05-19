@@ -3,6 +3,7 @@ package com.pingyu.infodiet.service;
 import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.DailyDigestDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
+import com.pingyu.infodiet.service.DailyDigestHistoryService;
 import com.pingyu.infodiet.service.impl.DailyDigestServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -14,6 +15,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DailyDigestServiceTest {
@@ -21,6 +24,7 @@ class DailyDigestServiceTest {
     @Test
     void generateTodayDigestShouldBuildGroupedDigestFromFeaturedClusters() {
         ContentClusterService contentClusterService = Mockito.mock(ContentClusterService.class);
+        DailyDigestHistoryService dailyDigestHistoryService = Mockito.mock(DailyDigestHistoryService.class);
         when(contentClusterService.listFeaturedClusters()).thenReturn(List.of(
                 ContentEventClusterDTO.builder()
                         .clusterKey("cluster-1")
@@ -61,6 +65,7 @@ class DailyDigestServiceTest {
 
         DailyDigestServiceImpl service = new DailyDigestServiceImpl();
         ReflectionTestUtils.setField(service, "contentClusterService", contentClusterService);
+        ReflectionTestUtils.setField(service, "dailyDigestHistoryService", dailyDigestHistoryService);
         ReflectionTestUtils.setField(service, "fixedToday", LocalDate.of(2026, 5, 16));
 
         DailyDigestDTO digest = service.generateTodayDigest();
@@ -73,5 +78,6 @@ class DailyDigestServiceTest {
         assertEquals("仓库 / 项目", digest.getSections().get(0).getSectionTitle());
         assertEquals("视频 / 讲解", digest.getSections().get(1).getSectionTitle());
         assertTrue(digest.getSummary().contains("OpenAI releases GPT-5.5"));
+        verify(dailyDigestHistoryService).saveOrUpdateDigest(any(DailyDigestDTO.class));
     }
 }

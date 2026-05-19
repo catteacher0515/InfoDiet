@@ -41,6 +41,11 @@ public class InfoDietProperties {
     private String youtubeSourceDailyCron = "0 30 9 * * ?";
 
     /**
+     * AI 日报日推送 cron 表达式
+     */
+    private String dailyDigestCron = "0 0 8 * * ?";
+
+    /**
      * 推送队列名称
      */
     private String pushQueueName = "info_diet_push_queue";

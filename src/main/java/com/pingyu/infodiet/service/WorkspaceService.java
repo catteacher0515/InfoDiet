@@ -2,6 +2,8 @@ package com.pingyu.infodiet.service;
 
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.model.dto.content.WorkspaceContentQueryRequest;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigRequest;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigVO;
 import com.pingyu.infodiet.model.dto.user.WorkspaceSubscriptionsVO;
 import com.pingyu.infodiet.model.entity.UserSourceSubscription;
 import com.pingyu.infodiet.model.entity.UserSubscriptionRule;
@@ -20,9 +22,19 @@ public interface WorkspaceService {
     WorkspaceSubscriptionsVO getMySubscriptions();
 
     /**
+     * 查询当前用户推送配置
+     */
+    UserPushConfigVO getMyPushConfig();
+
+    /**
      * 新增当前用户关键词
      */
     boolean addMyKeyword(String keyword);
+
+    /**
+     * 更新当前用户推送配置
+     */
+    boolean updateMyPushConfig(UserPushConfigRequest request);
 
     /**
      * 删除当前用户关键词

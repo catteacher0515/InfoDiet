@@ -2,6 +2,7 @@ package com.pingyu.infodiet.controller;
 
 import com.pingyu.infodiet.common.BaseResponse;
 import com.pingyu.infodiet.service.InfoDietScheduleService;
+import com.pingyu.infodiet.service.FeishuPushService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -56,6 +57,23 @@ class InfoDietScheduleControllerTest {
         assertEquals(2, response.getData().getPendingPushSkippedCount());
         assertEquals(3, response.getData().getEnqueuedCount());
         assertEquals(0, response.getData().getEnqueueSkippedCount());
+    }
+
+    @Test
+    void runDailyDigestPushFlowShouldReturnPushSummary() {
+        InfoDietScheduleService infoDietScheduleService = Mockito.mock(InfoDietScheduleService.class);
+        FeishuPushService.PushResult pushResult = new FeishuPushService.PushResult(5, 4, 1);
+        when(infoDietScheduleService.runDailyDigestPushFlow()).thenReturn(pushResult);
+
+        InfoDietScheduleController controller = new InfoDietScheduleController();
+        ReflectionTestUtils.setField(controller, "infoDietScheduleService", infoDietScheduleService);
+
+        BaseResponse<FeishuPushService.PushResult> response = controller.runDailyDigestPushFlow();
+
+        assertEquals(0, response.getCode());
+        assertEquals(5, response.getData().getTotalCount());
+        assertEquals(4, response.getData().getSuccessCount());
+        assertEquals(1, response.getData().getFailedCount());
     }
 
     @Test

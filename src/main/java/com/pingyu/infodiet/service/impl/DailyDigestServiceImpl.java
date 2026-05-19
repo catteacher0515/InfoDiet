@@ -8,6 +8,7 @@ import com.pingyu.infodiet.model.dto.content.DailyDigestSectionDTO;
 import com.pingyu.infodiet.model.dto.content.UnifiedContentItemDTO;
 import com.pingyu.infodiet.service.ContentClusterService;
 import com.pingyu.infodiet.service.DailyDigestService;
+import com.pingyu.infodiet.service.DailyDigestHistoryService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,9 @@ public class DailyDigestServiceImpl implements DailyDigestService {
     @Resource
     private ContentClusterService contentClusterService;
 
+    @Resource
+    private DailyDigestHistoryService dailyDigestHistoryService;
+
     protected LocalDate fixedToday;
 
     /**
@@ -40,7 +44,7 @@ public class DailyDigestServiceImpl implements DailyDigestService {
                 .filter(size -> size != null)
                 .mapToInt(Integer::intValue)
                 .sum();
-        return DailyDigestDTO.builder()
+        DailyDigestDTO digest = DailyDigestDTO.builder()
                 .digestDate(today)
                 .digestTitle("AI 日报 · " + today)
                 .totalClusterCount(clusters.size())
@@ -48,6 +52,24 @@ public class DailyDigestServiceImpl implements DailyDigestService {
                 .summary(buildSummary(clusters))
                 .sections(sections)
                 .build();
+        dailyDigestHistoryService.saveOrUpdateDigest(digest);
+        return digest;
+    }
+
+    /**
+     * 查询最近日报
+     */
+    @Override
+    public List<DailyDigestDTO> listRecentDigests(int limit) {
+        return dailyDigestHistoryService.listRecentDigests(limit);
+    }
+
+    /**
+     * 按日期查询日报详情
+     */
+    @Override
+    public DailyDigestDTO getDigestByDate(LocalDate digestDate) {
+        return dailyDigestHistoryService.getDigestDTOByDate(digestDate);
     }
 
     /**

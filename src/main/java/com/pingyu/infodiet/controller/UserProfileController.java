@@ -6,6 +6,7 @@ import com.pingyu.infodiet.exception.BusinessException;
 import com.pingyu.infodiet.exception.ErrorCode;
 import com.pingyu.infodiet.model.auth.LoginUserContext;
 import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigRequest;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.UserProfileService;
@@ -44,6 +45,17 @@ public class UserProfileController {
     @PutMapping("/update")
     public BaseResponse<Boolean> updateUser(@RequestBody UserProfile userProfile) {
         return ResultUtils.success(userProfileService.updateUser(userProfile));
+    }
+
+    /**
+     * 管理员更新用户推送配置
+     */
+    @PutMapping("/{userId}/push-config")
+    public BaseResponse<Boolean> updateUserPushConfig(@PathVariable Long userId, @RequestBody UserPushConfigRequest request) {
+        if (!"admin".equals(LoginUserContext.getRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        return ResultUtils.success(userProfileService.updateUserPushConfig(userId, request));
     }
 
     /**

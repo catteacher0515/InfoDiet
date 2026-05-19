@@ -36,3 +36,8 @@ node_modules/
 
 ### Local Config ###
 src/main/resources/application.yml
+CLAUDE.md
+AGENTS.md
+tmp_verify_app.py
+tmp_verify_result.json
+tmp_verify_artifacts/

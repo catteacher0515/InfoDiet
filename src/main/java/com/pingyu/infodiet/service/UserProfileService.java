@@ -2,6 +2,7 @@ package com.pingyu.infodiet.service;
 
 import com.mybatisflex.core.service.IService;
 import com.pingyu.infodiet.model.dto.user.AdminUserSubscriptionVO;
+import com.pingyu.infodiet.model.dto.user.UserPushConfigRequest;
 import com.pingyu.infodiet.model.dto.user.UserListItemVO;
 import com.pingyu.infodiet.model.entity.UserProfile;
 
@@ -21,6 +22,11 @@ public interface UserProfileService extends IService<UserProfile> {
      * 更新用户
      */
     boolean updateUser(UserProfile userProfile);
+
+    /**
+     * 更新用户推送配置
+     */
+    boolean updateUserPushConfig(Long userId, UserPushConfigRequest request);
 
     /**
      * 根据主键获取用户

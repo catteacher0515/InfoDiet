@@ -38,6 +38,7 @@ public class PushQueueServiceImpl implements PushQueueService {
      */
     @Override
     public EnqueuePushResult enqueuePendingPushes(String pushChannel) {
+        userContentPushService.markMissingContentPushesAsFailed(pushChannel);
         List<UserContentPush> pendingPushes = userContentPushService.listEnqueueablePushesByChannel(pushChannel);
         if (CollUtil.isEmpty(pendingPushes)) {
             return new EnqueuePushResult(0, 0, 0);

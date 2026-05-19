@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { adminCreateUser } from '../../api/auth'
-import { fetchAdminUserSubscription, fetchUserDetail, fetchUserList, updateUserStatus } from '../../api/users'
+import { fetchAdminUserSubscription, fetchUserDetail, fetchUserList, updateUserPushConfig, updateUserStatus } from '../../api/users'
 import { DataTable } from '../../components/DataTable'
 import type { AdminUserSubscription } from '../../types/admin-user'
-import type { UserDetail, UserListItem } from '../../types/user'
+import type { UserDetail, UserListItem, UserPushConfigPayload } from '../../types/user'
 
 function formatDateTime(value?: string) {
   if (!value) {
@@ -22,6 +22,12 @@ export function AdminUsersPage() {
     password: '',
     role: 'user' as 'admin' | 'user',
   })
+  const [pushConfigForm, setPushConfigForm] = useState<UserPushConfigPayload>({
+    feishuUserId: '',
+    pushChannel: 'feishu',
+    dailyPushLimit: 10,
+    pushCooldownHours: 0,
+  })
   const [message, setMessage] = useState('')
 
   async function loadUsers() {
@@ -36,6 +42,12 @@ export function AdminUsersPage() {
     ])
     setSelectedUser(detailResponse.data as UserDetail)
     setSelectedSubscription(subscriptionResponse.data)
+    setPushConfigForm({
+      feishuUserId: detailResponse.data.feishuUserId || '',
+      pushChannel: detailResponse.data.pushChannel || 'feishu',
+      dailyPushLimit: detailResponse.data.dailyPushLimit ?? 10,
+      pushCooldownHours: detailResponse.data.pushCooldownHours ?? 0,
+    })
   }
 
   async function handleToggleStatus(user: UserListItem) {
@@ -68,6 +80,23 @@ export function AdminUsersPage() {
       }
     } catch {
       setMessage('创建失败')
+    }
+  }
+
+  async function handleSavePushConfig() {
+    if (!selectedUser) {
+      setMessage('请先选择用户')
+      return
+    }
+    const response = await updateUserPushConfig(selectedUser.id, {
+      feishuUserId: pushConfigForm.feishuUserId.trim(),
+      pushChannel: pushConfigForm.pushChannel,
+      dailyPushLimit: Number(pushConfigForm.dailyPushLimit) || 0,
+      pushCooldownHours: Number(pushConfigForm.pushCooldownHours) || 0,
+    })
+    setMessage(response.code === 0 && response.data ? '推送配置已更新' : response.message || '推送配置更新失败')
+    if (response.code === 0 && response.data) {
+      await handleSelectUser(selectedUser.id)
     }
   }
 
@@ -155,9 +184,46 @@ export function AdminUsersPage() {
               </article>
               <article className="stack-item">
                 <strong>推送配置</strong>
-                <span>渠道：{selectedUser.pushChannel || '未设置'}</span>
-                <span>飞书用户 ID：{selectedUser.feishuUserId || '未设置'}</span>
-                <em>每日上限：{selectedUser.dailyPushLimit ?? '未设置'} / 冷却小时：{selectedUser.pushCooldownHours ?? '未设置'}</em>
+                <div className="form-panel compact-form embedded-form">
+                  <label>
+                    飞书用户 ID
+                    <input
+                      value={pushConfigForm.feishuUserId}
+                      onChange={(event) => setPushConfigForm((prev) => ({ ...prev, feishuUserId: event.target.value }))}
+                      placeholder="可留空；留空时不会接收飞书日报 IM"
+                    />
+                  </label>
+                  <label>
+                    推送渠道
+                    <select
+                      value={pushConfigForm.pushChannel}
+                      onChange={(event) => setPushConfigForm((prev) => ({ ...prev, pushChannel: event.target.value }))}
+                    >
+                      <option value="feishu">feishu</option>
+                    </select>
+                  </label>
+                  <label>
+                    每日推送上限
+                    <input
+                      type="number"
+                      min="1"
+                      value={pushConfigForm.dailyPushLimit}
+                      onChange={(event) => setPushConfigForm((prev) => ({ ...prev, dailyPushLimit: Number(event.target.value) }))}
+                    />
+                  </label>
+                  <label>
+                    冷却小时数
+                    <input
+                      type="number"
+                      min="0"
+                      value={pushConfigForm.pushCooldownHours}
+                      onChange={(event) => setPushConfigForm((prev) => ({ ...prev, pushCooldownHours: Number(event.target.value) }))}
+                    />
+                  </label>
+                  <button className="primary-button inline-button" type="button" onClick={handleSavePushConfig}>
+                    保存推送配置
+                  </button>
+                </div>
               </article>
               <article className="stack-item">
                 <strong>时间信息</strong>

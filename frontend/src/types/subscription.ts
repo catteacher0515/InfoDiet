@@ -20,6 +20,13 @@ export interface WorkspaceSubscriptions {
   sources: SourceSubscriptionItem[]
 }
 
+export interface UserPushConfig {
+  feishuUserId: string
+  pushChannel: string
+  dailyPushLimit: number
+  pushCooldownHours: number
+}
+
 export interface WorkspaceContentQuery {
   platform?: string
   contentType?: string

@@ -7,6 +7,7 @@ import com.pingyu.infodiet.model.dto.content.ContentEventClusterDTO;
 import com.pingyu.infodiet.model.dto.content.DailyDigestDTO;
 import com.pingyu.infodiet.model.dto.content.DailyDigestSectionDTO;
 import com.pingyu.infodiet.model.entity.ContentItem;
+import com.pingyu.infodiet.model.entity.DailyDigestPushRecord;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.model.entity.UserProfile;
 import com.pingyu.infodiet.service.impl.FeishuPushServiceImpl;
@@ -18,6 +19,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -186,8 +188,10 @@ class FeishuPushServiceTest {
     void pushTodayDigestToFeishuShouldSendDigestMessageToEnabledFeishuUsers() {
         DailyDigestService dailyDigestService = Mockito.mock(DailyDigestService.class);
         UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        DailyDigestPushRecordService dailyDigestPushRecordService = Mockito.mock(DailyDigestPushRecordService.class);
 
         when(dailyDigestService.generateTodayDigest()).thenReturn(DailyDigestDTO.builder()
+                .digestDate(LocalDate.of(2026, 5, 16))
                 .digestTitle("AI 日报 · 2026-05-16")
                 .totalClusterCount(2)
                 .totalItemCount(3)
@@ -214,8 +218,17 @@ class FeishuPushServiceTest {
         TestableFeishuPushService service = new TestableFeishuPushService();
         ReflectionTestUtils.setField(service, "dailyDigestService", dailyDigestService);
         ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "dailyDigestPushRecordService", dailyDigestPushRecordService);
         service.messageResults.add(true);
         service.messageResults.add(false);
+        when(dailyDigestPushRecordService.saveOrUpdatePushRecord(
+                Mockito.any(DailyDigestDTO.class),
+                Mockito.any(UserProfile.class),
+                Mockito.anyString(),
+                Mockito.anyBoolean(),
+                Mockito.nullable(String.class),
+                Mockito.any(LocalDateTime.class)
+        )).thenReturn(DailyDigestPushRecord.builder().id(1L).build());
 
         FeishuPushService.PushResult result = service.pushTodayDigestToFeishu();
 
@@ -225,6 +238,69 @@ class FeishuPushServiceTest {
         assertEquals(2, service.sentMessages.size());
         assertEquals("ou_1", service.sentMessages.get(0).receiveId());
         assertEquals("ou_3", service.sentMessages.get(1).receiveId());
+        verify(dailyDigestPushRecordService, times(2)).saveOrUpdatePushRecord(
+                Mockito.any(DailyDigestDTO.class),
+                Mockito.any(UserProfile.class),
+                Mockito.eq("feishu"),
+                Mockito.anyBoolean(),
+                Mockito.nullable(String.class),
+                Mockito.any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void pushTodayDigestToFeishuShouldSkipUsersAlreadySucceededToday() {
+        DailyDigestService dailyDigestService = Mockito.mock(DailyDigestService.class);
+        UserProfileService userProfileService = Mockito.mock(UserProfileService.class);
+        DailyDigestPushRecordService dailyDigestPushRecordService = Mockito.mock(DailyDigestPushRecordService.class);
+        LocalDate digestDate = LocalDate.of(2026, 5, 16);
+
+        when(dailyDigestService.generateTodayDigest()).thenReturn(DailyDigestDTO.builder()
+                .digestDate(digestDate)
+                .digestTitle("AI 日报 · 2026-05-16")
+                .totalClusterCount(1)
+                .totalItemCount(1)
+                .summary("摘要")
+                .sections(List.of())
+                .build());
+        when(userProfileService.listEnabledUsers()).thenReturn(List.of(
+                UserProfile.builder().id(1L).pushChannel("feishu").feishuUserId("ou_1").status(1).build(),
+                UserProfile.builder().id(2L).pushChannel("feishu").feishuUserId("ou_2").status(1).build()
+        ));
+        when(dailyDigestPushRecordService.getByDigestDateAndUserIdAndPushChannel(digestDate, 1L, "feishu"))
+                .thenReturn(DailyDigestPushRecord.builder().id(11L).pushStatus(1).build());
+        when(dailyDigestPushRecordService.getByDigestDateAndUserIdAndPushChannel(digestDate, 2L, "feishu"))
+                .thenReturn(DailyDigestPushRecord.builder().id(12L).pushStatus(2).build());
+        when(dailyDigestPushRecordService.saveOrUpdatePushRecord(
+                Mockito.any(DailyDigestDTO.class),
+                Mockito.any(UserProfile.class),
+                Mockito.anyString(),
+                Mockito.anyBoolean(),
+                Mockito.nullable(String.class),
+                Mockito.any(LocalDateTime.class)
+        )).thenReturn(DailyDigestPushRecord.builder().id(12L).build());
+
+        TestableFeishuPushService service = new TestableFeishuPushService();
+        ReflectionTestUtils.setField(service, "dailyDigestService", dailyDigestService);
+        ReflectionTestUtils.setField(service, "userProfileService", userProfileService);
+        ReflectionTestUtils.setField(service, "dailyDigestPushRecordService", dailyDigestPushRecordService);
+        service.messageResults.add(true);
+
+        FeishuPushService.PushResult result = service.pushTodayDigestToFeishu();
+
+        assertEquals(1, result.getTotalCount());
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(0, result.getFailedCount());
+        assertEquals(1, service.sentMessages.size());
+        assertEquals("ou_2", service.sentMessages.getFirst().receiveId());
+        verify(dailyDigestPushRecordService, times(1)).saveOrUpdatePushRecord(
+                Mockito.any(DailyDigestDTO.class),
+                Mockito.argThat(user -> user.getId().equals(2L)),
+                Mockito.eq("feishu"),
+                Mockito.eq(true),
+                Mockito.isNull(),
+                Mockito.any(LocalDateTime.class)
+        );
     }
 
     private static class TestableFeishuPushService extends FeishuPushServiceImpl {

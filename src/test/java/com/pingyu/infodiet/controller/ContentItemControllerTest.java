@@ -173,4 +173,43 @@ class ContentItemControllerTest {
         assertEquals(2, response.getData().getTotalClusterCount());
         assertEquals(3, response.getData().getTotalItemCount());
     }
+
+    @Test
+    void listRecentDigestsShouldReturnDigestList() {
+        DailyDigestService dailyDigestService = Mockito.mock(DailyDigestService.class);
+        when(dailyDigestService.listRecentDigests(7)).thenReturn(List.of(
+                DailyDigestDTO.builder()
+                        .digestTitle("AI 日报 · 2026-05-16")
+                        .totalClusterCount(2)
+                        .build()
+        ));
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "dailyDigestService", dailyDigestService);
+
+        BaseResponse<List<DailyDigestDTO>> response = controller.listRecentDigests(7);
+
+        assertEquals(0, response.getCode());
+        assertEquals(1, response.getData().size());
+        assertEquals(2, response.getData().getFirst().getTotalClusterCount());
+    }
+
+    @Test
+    void getDigestByDateShouldReturnDigestDetail() {
+        DailyDigestService dailyDigestService = Mockito.mock(DailyDigestService.class);
+        when(dailyDigestService.getDigestByDate(java.time.LocalDate.of(2026, 5, 16))).thenReturn(
+                DailyDigestDTO.builder()
+                        .digestTitle("AI 日报 · 2026-05-16")
+                        .totalItemCount(3)
+                        .build()
+        );
+
+        ContentItemController controller = new ContentItemController();
+        ReflectionTestUtils.setField(controller, "dailyDigestService", dailyDigestService);
+
+        BaseResponse<DailyDigestDTO> response = controller.getDigestByDate("2026-05-16");
+
+        assertEquals(0, response.getCode());
+        assertEquals(3, response.getData().getTotalItemCount());
+    }
 }

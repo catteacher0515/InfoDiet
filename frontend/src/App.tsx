@@ -12,6 +12,7 @@ import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminUsersPage } from './pages/admin/AdminUsersPage'
 import { AdminSubscriptionsPage } from './pages/admin/AdminSubscriptionsPage'
 import { OpsDashboardPage } from './pages/ops/OpsDashboardPage'
+import { OpsDigestPage } from './pages/ops/OpsDigestPage'
 import { OpsTasksPage } from './pages/ops/OpsTasksPage'
 import { OpsPushFailuresPage } from './pages/ops/OpsPushFailuresPage'
 import { OpsAlertsPage } from './pages/ops/OpsAlertsPage'
@@ -39,6 +40,7 @@ function App() {
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/subscriptions" element={<AdminSubscriptionsPage />} />
             <Route path="/ops/dashboard" element={<OpsDashboardPage />} />
+            <Route path="/ops/digest" element={<OpsDigestPage />} />
             <Route path="/ops/tasks" element={<OpsTasksPage />} />
             <Route path="/ops/push-failures" element={<OpsPushFailuresPage />} />
             <Route path="/ops/alerts" element={<OpsAlertsPage />} />

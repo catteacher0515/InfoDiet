@@ -17,4 +17,8 @@ export interface OpsDashboard {
   recentTaskCount: number
   pendingAlertCount: number
   failedPushCount: number
+  todayDigestGenerated: boolean
+  todayDigestPushSuccessCount: number
+  todayDigestPushFailedCount: number
+  recentDigestFailedRecordCount: number
 }

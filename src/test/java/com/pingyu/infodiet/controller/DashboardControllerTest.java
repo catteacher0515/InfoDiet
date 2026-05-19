@@ -60,6 +60,10 @@ class DashboardControllerTest {
                 .recentTaskCount(5)
                 .pendingAlertCount(2)
                 .failedPushCount(3)
+                .todayDigestGenerated(true)
+                .todayDigestPushSuccessCount(2)
+                .todayDigestPushFailedCount(1)
+                .recentDigestFailedRecordCount(1)
                 .build());
 
         DashboardController controller = new DashboardController();
@@ -69,5 +73,7 @@ class DashboardControllerTest {
 
         assertEquals(0, response.getCode());
         assertEquals(3, response.getData().getFailedPushCount());
+        assertEquals(true, response.getData().getTodayDigestGenerated());
+        assertEquals(1, response.getData().getTodayDigestPushFailedCount());
     }
 }

@@ -1,6 +1,13 @@
 import http from './http'
 import type { BaseResponse } from '../types/auth'
-import type { AlertRecordItem, CrawlTaskLogItem, PageResult, PushFailureItem } from '../types/ops'
+import type {
+  AlertRecordItem,
+  CrawlTaskLogItem,
+  DailyDigestHistoryItem,
+  DailyDigestPushRecordItem,
+  PageResult,
+  PushFailureItem,
+} from '../types/ops'
 import type { FailedPushOverview, TaskLogDetail } from '../types/ops-detail'
 
 export async function fetchRecentTasks() {
@@ -110,6 +117,55 @@ export async function batchRetryFailedPushes(pushIdList: number[]) {
   const { data } = await http.post<BaseResponse<{ totalCount: number; successCount: number; failedCount: number }>>(
     '/user-content-push/failed/retry',
     pushIdList,
+  )
+  return data
+}
+
+export async function fetchRecentFailedDigestPushRecords(limit = 10) {
+  const { data } = await http.get<BaseResponse<DailyDigestPushRecordItem[]>>(
+    `/daily-digest-push-record/failed/recent?limit=${limit}`,
+  )
+  return data
+}
+
+export async function fetchRecentDigests(limit = 7) {
+  const { data } = await http.get<BaseResponse<DailyDigestHistoryItem[]>>(`/daily-digest/recent?limit=${limit}`)
+  return data
+}
+
+export async function fetchDigestDetail(digestDate: string) {
+  const { data } = await http.get<BaseResponse<DailyDigestHistoryItem>>(`/daily-digest/detail/${digestDate}`)
+  return data
+}
+
+export async function fetchDigestPushRecordPage(params: {
+  pushStatus?: number
+  keyword?: string
+  digestDate?: string
+  pageNum?: number
+  pageSize?: number
+}) {
+  const search = new URLSearchParams()
+  if (params.pushStatus !== undefined) {
+    search.set('pushStatus', String(params.pushStatus))
+  }
+  if (params.keyword) {
+    search.set('keyword', params.keyword)
+  }
+  if (params.digestDate) {
+    search.set('digestDate', params.digestDate)
+  }
+  search.set('pageNum', String(params.pageNum ?? 1))
+  search.set('pageSize', String(params.pageSize ?? 10))
+  const { data } = await http.get<BaseResponse<PageResult<DailyDigestPushRecordItem>>>(
+    `/daily-digest-push-record/page?${search.toString()}`,
+  )
+  return data
+}
+
+export async function runTodayDigestPush() {
+  const { data } = await http.post<BaseResponse<{ totalCount: number; successCount: number; failedCount: number }>>(
+    '/feishu/push/digest/today',
   )
   return data
 }

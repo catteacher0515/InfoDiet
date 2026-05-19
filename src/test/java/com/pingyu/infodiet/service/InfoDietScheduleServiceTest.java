@@ -5,6 +5,7 @@ import com.pingyu.infodiet.config.InfoDietProperties;
 import com.pingyu.infodiet.model.dto.github.GithubTrendingItemDTO;
 import com.pingyu.infodiet.service.SourceSubscriptionCrawlService;
 import com.pingyu.infodiet.service.impl.InfoDietScheduleServiceImpl;
+import com.pingyu.infodiet.service.FeishuPushService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -178,6 +179,32 @@ class InfoDietScheduleServiceTest {
     }
 
     @Test
+    void runDailyDigestPushFlowShouldPushDigestAndWriteTaskLog() {
+        FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+        CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
+        when(feishuPushService.pushTodayDigestToFeishu())
+                .thenReturn(new FeishuPushService.PushResult(5, 4, 1));
+        when(crawlTaskLogService.buildSuccessLog(
+                any(), any(), any(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(),
+                Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyInt()
+        )).thenReturn(CrawlTaskLog.builder().taskType("daily_digest_push_flow").taskStatus(1).build());
+
+        InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
+        ReflectionTestUtils.setField(service, "feishuPushService", feishuPushService);
+        ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
+
+        FeishuPushService.PushResult result = service.runDailyDigestPushFlow();
+
+        assertEquals(5, result.getTotalCount());
+        assertEquals(4, result.getSuccessCount());
+        assertEquals(1, result.getFailedCount());
+        verify(feishuPushService).pushTodayDigestToFeishu();
+        verify(crawlTaskLogService).save(any(CrawlTaskLog.class));
+    }
+
+    @Test
     void runDailyGithubFlowShouldWriteFailureTaskLogWhenExceptionThrown() {
         GithubTrendingService githubTrendingService = Mockito.mock(GithubTrendingService.class);
         CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
@@ -214,15 +241,56 @@ class InfoDietScheduleServiceTest {
     }
 
     @Test
+    void runDailyDigestPushFlowShouldWriteFailureTaskLogWhenExceptionThrown() {
+        FeishuPushService feishuPushService = Mockito.mock(FeishuPushService.class);
+        CrawlTaskLogService crawlTaskLogService = Mockito.mock(CrawlTaskLogService.class);
+        AlertRecordService alertRecordService = Mockito.mock(AlertRecordService.class);
+        when(feishuPushService.pushTodayDigestToFeishu()).thenThrow(new IllegalStateException("日报推送失败"));
+        when(crawlTaskLogService.buildFailedLog(any(), any(), any(), any()))
+                .thenReturn(CrawlTaskLog.builder().taskType("daily_digest_push_flow").taskStatus(2).errorMessage("日报推送失败").build());
+
+        InfoDietScheduleServiceImpl service = new InfoDietScheduleServiceImpl();
+        ReflectionTestUtils.setField(service, "feishuPushService", feishuPushService);
+        ReflectionTestUtils.setField(service, "crawlTaskLogService", crawlTaskLogService);
+        ReflectionTestUtils.setField(service, "alertRecordService", alertRecordService);
+
+        try {
+            service.runDailyDigestPushFlow();
+        } catch (IllegalStateException e) {
+            assertEquals("日报推送失败", e.getMessage());
+        }
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CrawlTaskLog.class);
+        verify(crawlTaskLogService).save(captor.capture());
+        CrawlTaskLog taskLog = captor.getValue();
+        assertEquals("daily_digest_push_flow", taskLog.getTaskType());
+        assertEquals(2, taskLog.getTaskStatus());
+        assertNotNull(taskLog.getErrorMessage());
+        verify(alertRecordService).createOrUpdateAlert(
+                Mockito.eq("task_failed"),
+                Mockito.eq("error"),
+                Mockito.eq("crawl_task_log"),
+                Mockito.isNull(),
+                Mockito.eq("调度任务执行失败"),
+                Mockito.contains("日报推送失败")
+        );
+    }
+
+    @Test
     void rerunTaskShouldDispatchByTaskType() {
         InfoDietScheduleServiceImpl service = Mockito.spy(new InfoDietScheduleServiceImpl());
         Mockito.doReturn(new InfoDietScheduleService.ScheduleResult(1, 1, 0, 1, 0, 1, 0))
                 .when(service).runDailyGithubFlow();
+        Mockito.doReturn(new FeishuPushService.PushResult(2, 2, 0))
+                .when(service).runDailyDigestPushFlow();
 
         Object result = service.rerunTask("github_daily_flow");
+        Object digestResult = service.rerunTask("daily_digest_push_flow");
 
         assertNotNull(result);
+        assertNotNull(digestResult);
         verify(service).runDailyGithubFlow();
+        verify(service).runDailyDigestPushFlow();
     }
 
     @Test

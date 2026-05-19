@@ -3,6 +3,7 @@ package com.pingyu.infodiet.service;
 import com.pingyu.infodiet.model.entity.ContentItem;
 import com.pingyu.infodiet.model.entity.UserContentPush;
 import com.pingyu.infodiet.service.impl.UserContentPushServiceImpl;
+import com.mybatisflex.core.query.QueryWrapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -263,8 +264,10 @@ class UserContentPushServiceTest {
     void listEnqueueablePushesShouldOnlyReturnRetryableRecords() {
         InMemoryUserContentPushService service = new InMemoryUserContentPushService();
         service.fixedNow = LocalDateTime.of(2026, 5, 12, 10, 0);
+        service.existingContentIds.add(1L);
         service.savedItems.add(UserContentPush.builder()
                 .id(1L)
+                .contentItemId(1L)
                 .pushChannel("feishu")
                 .pushStatus(0)
                 .queueStatus(0)
@@ -272,6 +275,7 @@ class UserContentPushServiceTest {
                 .build());
         service.savedItems.add(UserContentPush.builder()
                 .id(2L)
+                .contentItemId(2L)
                 .pushChannel("feishu")
                 .pushStatus(0)
                 .queueStatus(0)
@@ -279,12 +283,14 @@ class UserContentPushServiceTest {
                 .build());
         service.savedItems.add(UserContentPush.builder()
                 .id(3L)
+                .contentItemId(3L)
                 .pushChannel("feishu")
                 .pushStatus(0)
                 .queueStatus(1)
                 .build());
         service.savedItems.add(UserContentPush.builder()
                 .id(4L)
+                .contentItemId(4L)
                 .pushChannel("telegram")
                 .pushStatus(0)
                 .queueStatus(0)
@@ -294,6 +300,68 @@ class UserContentPushServiceTest {
 
         assertEquals(1, result.size());
         assertEquals(1L, result.getFirst().getId());
+    }
+
+    @Test
+    void listEnqueueablePushesShouldExcludeMissingContentRecords() {
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        service.fixedNow = LocalDateTime.of(2026, 5, 12, 10, 0);
+        service.existingContentIds.add(100L);
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .contentItemId(100L)
+                .pushChannel("feishu")
+                .pushStatus(0)
+                .queueStatus(0)
+                .nextRetryTime(null)
+                .build());
+        service.savedItems.add(UserContentPush.builder()
+                .id(2L)
+                .contentItemId(999999999999L)
+                .pushChannel("feishu")
+                .pushStatus(0)
+                .queueStatus(0)
+                .nextRetryTime(null)
+                .build());
+
+        List<UserContentPush> result = service.listEnqueueablePushesByChannel("feishu");
+
+        assertEquals(1, result.size());
+        assertEquals(1L, result.getFirst().getId());
+    }
+
+    @Test
+    void markMissingContentPushesAsFailedShouldFinalizeInvalidRecords() {
+        InMemoryUserContentPushService service = new InMemoryUserContentPushService();
+        service.fixedNow = LocalDateTime.of(2026, 5, 12, 10, 0);
+        service.existingContentIds.add(100L);
+        service.savedItems.add(UserContentPush.builder()
+                .id(1L)
+                .contentItemId(100L)
+                .pushChannel("feishu")
+                .pushStatus(0)
+                .queueStatus(0)
+                .retryCount(0)
+                .maxRetryCount(3)
+                .build());
+        service.savedItems.add(UserContentPush.builder()
+                .id(2L)
+                .contentItemId(999999999999L)
+                .pushChannel("feishu")
+                .pushStatus(0)
+                .queueStatus(0)
+                .retryCount(1)
+                .maxRetryCount(3)
+                .build());
+
+        int affectedCount = service.markMissingContentPushesAsFailed("feishu");
+
+        assertEquals(1, affectedCount);
+        assertEquals(0, service.findById(1L).getPushStatus());
+        assertEquals(2, service.findById(2L).getPushStatus());
+        assertEquals(3, service.findById(2L).getQueueStatus());
+        assertEquals("内容不存在", service.findById(2L).getFailReason());
+        assertNull(service.findById(2L).getNextRetryTime());
     }
 
     @Test
@@ -469,6 +537,7 @@ class UserContentPushServiceTest {
     private static class InMemoryUserContentPushService extends UserContentPushServiceImpl {
 
         private final List<UserContentPush> savedItems = new ArrayList<>();
+        private final List<Long> existingContentIds = new ArrayList<>();
         private LocalDateTime fixedNow = LocalDateTime.now();
 
         @Override
@@ -492,12 +561,7 @@ class UserContentPushServiceTest {
 
         @Override
         public List<UserContentPush> listEnqueueablePushesByChannel(String pushChannel) {
-            return savedItems.stream()
-                    .filter(item -> pushChannel.equals(item.getPushChannel()))
-                    .filter(item -> item.getPushStatus() != null && item.getPushStatus() == 0)
-                    .filter(item -> item.getQueueStatus() != null && item.getQueueStatus() == 0)
-                    .filter(item -> item.getNextRetryTime() == null || !item.getNextRetryTime().isAfter(fixedNow))
-                    .toList();
+            return super.listEnqueueablePushesByChannel(pushChannel);
         }
 
         @Override
@@ -596,6 +660,35 @@ class UserContentPushServiceTest {
                     .filter(item -> item != null)
                     .max(LocalDateTime::compareTo)
                     .orElse(null);
+        }
+
+        @Override
+        public List<UserContentPush> list() {
+            return new ArrayList<>(savedItems);
+        }
+
+        @Override
+        public List<UserContentPush> list(QueryWrapper queryWrapper) {
+            return new ArrayList<>(savedItems);
+        }
+
+        @Override
+        protected boolean contentItemExists(Long contentItemId) {
+            return contentItemId != null && existingContentIds.contains(contentItemId);
+        }
+
+        @Override
+        protected boolean markMissingContentPushAsFailed(Long pushId) {
+            UserContentPush existing = findById(pushId);
+            if (existing == null || existing.getPushStatus() == null || existing.getPushStatus() != 0
+                    || existing.getQueueStatus() == null || existing.getQueueStatus() != 0) {
+                return false;
+            }
+            existing.setPushStatus(2);
+            existing.setQueueStatus(3);
+            existing.setFailReason("内容不存在");
+            existing.setNextRetryTime(null);
+            return true;
         }
 
         private UserContentPush findById(Long id) {

@@ -171,3 +171,36 @@ create table if not exists alert_record
     unique key uk_alert_source (alertType, sourceType, sourceId),
     index idx_alertStatus_lastOccurTime (alertStatus, lastOccurTime)
 ) comment '失败告警记录表' collate = utf8mb4_unicode_ci;
+
+create table if not exists daily_digest_history
+(
+    id                bigint auto_increment comment '主键' primary key,
+    digestDate        date                                   not null comment '日报日期',
+    digestTitle       varchar(255)                           null comment '日报标题',
+    totalClusterCount int                                    null comment '精选事件总数',
+    totalItemCount    int                                    null comment '精选内容总数',
+    summary           varchar(1024)                          null comment '日报摘要',
+    digestContent     longtext                               null comment '日报完整内容',
+    createTime        datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
+    updateTime        datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete          tinyint  default 0                     not null comment '是否删除',
+    unique key uk_digest_date (digestDate)
+) comment 'AI 日报历史表' collate = utf8mb4_unicode_ci;
+
+create table if not exists daily_digest_push_record
+(
+    id          bigint auto_increment comment '主键' primary key,
+    digestDate  date                                   not null comment '日报日期',
+    digestTitle varchar(255)                           null comment '日报标题',
+    userId      bigint                                 not null comment '用户 ID',
+    pushChannel varchar(32)                            not null comment '推送渠道',
+    receiveId   varchar(128)                           null comment '接收人 ID',
+    pushStatus  tinyint                                not null comment '推送状态 1-成功 2-失败',
+    pushTime    datetime                               null comment '推送时间',
+    failReason  varchar(512)                           null comment '失败原因',
+    createTime  datetime default CURRENT_TIMESTAMP     not null comment '创建时间',
+    updateTime  datetime default CURRENT_TIMESTAMP     not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete    tinyint  default 0                     not null comment '是否删除',
+    unique key uk_digest_user_channel (digestDate, userId, pushChannel),
+    index idx_pushStatus_pushTime (pushStatus, pushTime)
+) comment 'AI 日报推送记录表' collate = utf8mb4_unicode_ci;

@@ -4,11 +4,13 @@ import {
   addMyRule,
   addMySource,
   fetchMySubscriptions,
+  fetchMyPushConfig,
   removeMyKeyword,
   removeMyRule,
   removeMySource,
+  updateMyPushConfig,
 } from '../../api/workspace'
-import type { WorkspaceSubscriptions } from '../../types/subscription'
+import type { UserPushConfig, WorkspaceSubscriptions } from '../../types/subscription'
 
 export function WorkspaceSubscriptionsPage() {
   const [data, setData] = useState<WorkspaceSubscriptions | null>(null)
@@ -21,12 +23,27 @@ export function WorkspaceSubscriptionsPage() {
   const [sourcePlatform, setSourcePlatform] = useState('youtube')
   const [sourceType, setSourceType] = useState('channel')
   const [sourceValue, setSourceValue] = useState('')
+  const [pushConfig, setPushConfig] = useState<UserPushConfig>({
+    feishuUserId: '',
+    pushChannel: 'feishu',
+    dailyPushLimit: 10,
+    pushCooldownHours: 0,
+  })
 
   async function loadSubscriptions() {
     setLoading(true)
     try {
-      const response = await fetchMySubscriptions()
-      setData(response.data)
+      const [subscriptionsResponse, pushConfigResponse] = await Promise.all([
+        fetchMySubscriptions(),
+        fetchMyPushConfig(),
+      ])
+      setData(subscriptionsResponse.data)
+      setPushConfig({
+        feishuUserId: pushConfigResponse.data.feishuUserId || '',
+        pushChannel: pushConfigResponse.data.pushChannel || 'feishu',
+        dailyPushLimit: pushConfigResponse.data.dailyPushLimit ?? 10,
+        pushCooldownHours: pushConfigResponse.data.pushCooldownHours ?? 0,
+      })
     } finally {
       setLoading(false)
     }
@@ -100,6 +117,19 @@ export function WorkspaceSubscriptionsPage() {
     }
   }
 
+  async function handleSavePushConfig() {
+    const response = await updateMyPushConfig({
+      feishuUserId: pushConfig.feishuUserId.trim(),
+      pushChannel: pushConfig.pushChannel,
+      dailyPushLimit: Number(pushConfig.dailyPushLimit) || 0,
+      pushCooldownHours: Number(pushConfig.pushCooldownHours) || 0,
+    })
+    setMessage(response.code === 0 ? '推送配置已保存' : response.message || '推送配置保存失败')
+    if (response.code === 0) {
+      await loadSubscriptions()
+    }
+  }
+
   return (
     <section className="page-section">
       <div className="page-heading">
@@ -114,6 +144,50 @@ export function WorkspaceSubscriptionsPage() {
       </div>
 
       <div className="content-grid">
+        <div className="panel">
+          <h3>推送配置</h3>
+          <div className="form-panel compact-form">
+            <label>
+              飞书用户 ID
+              <input
+                value={pushConfig.feishuUserId}
+                onChange={(event) => setPushConfig((prev) => ({ ...prev, feishuUserId: event.target.value }))}
+                placeholder="可留空；留空时不会接收飞书日报 IM"
+              />
+            </label>
+            <label>
+              推送渠道
+              <select
+                value={pushConfig.pushChannel}
+                onChange={(event) => setPushConfig((prev) => ({ ...prev, pushChannel: event.target.value }))}
+              >
+                <option value="feishu">feishu</option>
+              </select>
+            </label>
+            <label>
+              每日推送上限
+              <input
+                type="number"
+                min="1"
+                value={pushConfig.dailyPushLimit}
+                onChange={(event) => setPushConfig((prev) => ({ ...prev, dailyPushLimit: Number(event.target.value) }))}
+              />
+            </label>
+            <label>
+              冷却小时数
+              <input
+                type="number"
+                min="0"
+                value={pushConfig.pushCooldownHours}
+                onChange={(event) => setPushConfig((prev) => ({ ...prev, pushCooldownHours: Number(event.target.value) }))}
+              />
+            </label>
+            <button className="primary-button" type="button" onClick={handleSavePushConfig}>
+              保存推送配置
+            </button>
+          </div>
+        </div>
+
         <div className="panel">
           <h3>关键词订阅</h3>
           <div className="form-panel compact-form">

@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.time.LocalDate;
 
 /**
  * 内容抓取表 控制层。
@@ -183,6 +184,22 @@ public class ContentItemController {
     @GetMapping("digest/today")
     public BaseResponse<DailyDigestDTO> generateTodayDigest() {
         return ResultUtils.success(dailyDigestService.generateTodayDigest());
+    }
+
+    /**
+     * 查询最近日报
+     */
+    @GetMapping("digest/recent")
+    public BaseResponse<List<DailyDigestDTO>> listRecentDigests(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "7") int limit) {
+        return ResultUtils.success(dailyDigestService.listRecentDigests(limit));
+    }
+
+    /**
+     * 按日期查询日报详情
+     */
+    @GetMapping("digest/detail/{digestDate}")
+    public BaseResponse<DailyDigestDTO> getDigestByDate(@PathVariable String digestDate) {
+        return ResultUtils.success(dailyDigestService.getDigestByDate(LocalDate.parse(digestDate)));
     }
 
 }

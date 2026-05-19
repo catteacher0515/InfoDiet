@@ -48,3 +48,37 @@ export interface PushFailureItem {
   retryCount?: number
   updateTime?: string
 }
+
+export interface DailyDigestPushRecordItem {
+  id: number
+  digestDate: string
+  digestTitle?: string
+  userId: number
+  pushChannel: string
+  receiveId?: string
+  pushStatus: number
+  pushTime?: string
+  failReason?: string
+}
+
+export interface DailyDigestSectionClusterItem {
+  clusterKey?: string
+  clusterTitle?: string
+  clusterScore?: number
+  clusterSize?: number
+}
+
+export interface DailyDigestSectionItem {
+  sectionTitle: string
+  itemCount: number
+  clusters: DailyDigestSectionClusterItem[]
+}
+
+export interface DailyDigestHistoryItem {
+  digestDate: string
+  digestTitle?: string
+  totalClusterCount?: number
+  totalItemCount?: number
+  summary?: string
+  sections?: DailyDigestSectionItem[]
+}

@@ -33,4 +33,13 @@ public class InfoDietScheduler {
         var result = infoDietScheduleService.runDailyYoutubeSourcePushFlow();
         log.info("信息节食 YouTube 订阅源定时推送完成：{}", result);
     }
+
+    /**
+     * 定时执行 AI 日报推送
+     */
+    @Scheduled(cron = "${info-diet.daily-digest-cron:0 0 8 * * ?}")
+    public void runDailyDigestPushFlow() {
+        var result = infoDietScheduleService.runDailyDigestPushFlow();
+        log.info("信息节食 AI 日报定时推送完成：{}", result);
+    }
 }
